@@ -31,7 +31,7 @@ from aadh.core.artifacts import ArtifactStore
 from aadh.agents import planner as planner_agent
 from aadh.agents import coder as coder_agent
 from aadh.agents import evaluator as evaluator_agent
-from aadh.runners import build_runner, device_runner, ui_verifier, git_pusher
+from aadh.runners import build_runner, device_runner, ui_verifier
 
 
 def run(
@@ -219,23 +219,6 @@ def run(
     report_path = store.write_report(run_dir, report)
     if console:
         console.print(f"\n[dim]Report: {report_path}[/dim]")
-
-    # ── Git push on success ───────────────────────────────────────────────────
-    git_cfg = cfg.get("git", {})
-    if last_eval.status == RunStatus.SUCCESS and git_cfg.get("auto_push", False):
-        if previous_coder and current_plan:
-            _log(console, "Git", "committing and pushing changes…")
-            try:
-                sha = git_pusher.commit_and_push(
-                    project_path=project_path,
-                    plan=current_plan,
-                    coder_output=previous_coder,
-                    branch=git_cfg.get("branch") or None,
-                    remote=git_cfg.get("remote", "origin"),
-                )
-                _log(console, "Git", f"pushed {sha[:8]}", style="green")
-            except git_pusher.GitPushError as exc:
-                _log(console, "Git", f"push failed: {exc}", style="yellow")
 
     return report
 
