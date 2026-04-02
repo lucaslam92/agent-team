@@ -1,0 +1,45 @@
+# AADH settings — copy to your project and edit
+
+project:
+  path: "./android-project"          # Absolute or relative path to Android project root
+  app_package: "com.example.app"
+  main_activity: "com.example.app/.MainActivity"
+  build_module: "app"                # Gradle module to build
+
+harness:
+  max_iterations: 4                  # Hard cap on Planner→Coder→Build→Verify cycles
+  pass_threshold: 7.5                # Weighted score (0–10) to count as success
+  max_files_per_iteration: 5         # Coder: refuse if plan lists more files than this
+  artifacts_dir: "./artifacts"
+
+llm:
+  default:
+    provider: anthropic              # "anthropic" | "openai"
+    model: claude-opus-4-6
+    api_key_env: ANTHROPIC_API_KEY   # env var name that holds the key
+    thinking: true                   # adaptive thinking (Anthropic only, ignored for OpenAI)
+    max_tokens: 4096
+
+  # Per-agent overrides — any key omitted falls back to default
+  planner:
+    model: claude-opus-4-6
+    max_tokens: 2048
+
+  coder:
+    model: claude-opus-4-6
+    max_tokens: 8192                 # Needs room: reads full files + writes full replacements
+
+  evaluator:
+    model: claude-sonnet-4-6         # Faster/cheaper; evaluation doesn't need max reasoning
+    max_tokens: 2048
+    thinking: false
+
+# Example: switch all agents to OpenAI-compatible (e.g. local Ollama)
+#
+# llm:
+#   default:
+#     provider: openai
+#     model: gpt-4o
+#     api_key_env: OPENAI_API_KEY
+#     base_url: null               # or http://localhost:11434/v1 for Ollama
+#     thinking: false

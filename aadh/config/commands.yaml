@@ -1,0 +1,25 @@
+# Configurable shell commands for each runner stage.
+# All commands run from project.path (Android project root).
+# Use {apk_path}, {app_package}, {main_activity} as template variables.
+
+build:
+  assemble: "./gradlew assembleDebug --no-daemon"
+  unit_test: "./gradlew testDebugUnitTest --no-daemon"
+  clean: "./gradlew clean --no-daemon"
+  apk_output: "app/build/outputs/apk/debug/app-debug.apk"
+
+device:
+  wait:    "adb wait-for-device"
+  install: "adb install -r {apk_path}"
+  launch:  "adb shell am start -n {main_activity}"
+  logcat:  "adb logcat -d -v time"
+  clear_logcat: "adb logcat -c"
+
+ui_test:
+  run:  "maestro test {flow_path}"
+  # maestro screenshots land in: maestro_screenshots/
+
+# Emulator management (optional — leave empty if you manage emulator yourself)
+emulator:
+  start: ""   # e.g. "emulator -avd Pixel_6_API_34 -no-window -no-audio &"
+  wait_boot: "adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'"
