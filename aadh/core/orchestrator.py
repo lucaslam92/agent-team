@@ -28,6 +28,7 @@ from aadh.core.models import (
     VerificationResult, EvaluationResult, RunStatus, FinalReport,
 )
 from aadh.core.artifacts import ArtifactStore
+from aadh.input.parser import TaskSpec, parse as parse_input
 from aadh.agents import planner as planner_agent
 from aadh.agents import coder as coder_agent
 from aadh.agents import evaluator as evaluator_agent
@@ -35,7 +36,7 @@ from aadh.runners import build_runner, device_runner, ui_verifier
 
 
 def run(
-    task: str,
+    task: str,                  # Raw input: plain text, Jira key/URL, Confluence URL, .md path
     settings: dict,
     commands: dict,
     verbose: bool = True,
@@ -62,10 +63,14 @@ def run(
     coder_llm     = client_from_settings(llm_cfg.get("coder",     {}), llm_cfg["default"])
     evaluator_llm = client_from_settings(llm_cfg.get("evaluator", {}), llm_cfg["default"])
 
+    # ── Parse input (Jira / Confluence / Markdown / plain text) ──────────────
+    input_cfg = cfg.get("input", {})
+    spec = parse_input(task, input_cfg)
+
     if console:
         console.print(Panel(
             f"[bold cyan]Android Auto Dev Harness[/bold cyan]\n"
-            f"Task: {task}\n"
+            f"[dim]{spec.input_type.value}[/dim]  {spec.title}\n"
             f"Run ID: {run_id}  |  Max iterations: {max_iter}  |  Pass threshold: {threshold}",
             box=box.ROUNDED,
         ))
@@ -85,7 +90,7 @@ def run(
         _log(console, "Planner", "generating plan…")
         current_plan = planner_agent.plan(
             planner_llm,
-            task=task,
+            spec=spec,
             project_path=str(project_path),
             app_package=app_package,
             main_activity=main_activity,

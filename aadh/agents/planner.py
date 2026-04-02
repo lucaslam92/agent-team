@@ -1,10 +1,10 @@
 """
-Planner Agent — Task → structured plan + Maestro verification flow.
+Planner Agent — TaskSpec → structured plan + Maestro verification flow.
+
+Accepts input from any source (Jira, Confluence, Markdown, plain text)
+via the unified TaskSpec — the Planner itself is source-agnostic.
 
 Output: plan.json (written by ArtifactStore) + Plan dataclass.
-
-The planner deliberately avoids prescribing HOW to implement —
-it only identifies WHAT files are relevant and WHAT success looks like.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import json
 
 from aadh.core.llm import LLMClient
 from aadh.core.models import Plan
+from aadh.input.parser import TaskSpec
 
 
 SYSTEM = """\
@@ -45,24 +46,38 @@ Respond with ONLY valid JSON, no markdown fences, matching this schema exactly:
 
 def plan(
     client: LLMClient,
-    task: str,
+    spec: TaskSpec,
     project_path: str,
     app_package: str,
     main_activity: str,
     feedback: str | None = None,
 ) -> Plan:
     parts = [
-        f"Task: {task}",
+        f"Task title: {spec.title}",
+        "",
+        f"Full description:\n{spec.description}",
+        "",
         f"Android project root: {project_path}",
         f"App package: {app_package}",
         f"Main activity class: {main_activity}",
     ]
+
+    # Surface useful metadata (Jira priority/labels, etc.)
+    if spec.metadata:
+        useful = {k: v for k, v in spec.metadata.items()
+                  if v and k not in ("issue_key", "page_id")}
+        if useful:
+            parts += ["", "Context metadata:"]
+            parts += [f"  {k}: {v}" for k, v in useful.items()]
+
+    if spec.source_url:
+        parts += ["", f"Source: {spec.source_url}"]
+
     if feedback:
         parts += ["", "=== EVALUATOR FEEDBACK FROM LAST RUN ===", feedback]
 
     raw = client.chat(system=SYSTEM, user="\n".join(parts))
 
-    # Strip accidental markdown fences
     raw = raw.strip()
     if raw.startswith("```"):
         raw = raw.split("\n", 1)[1]
@@ -71,7 +86,7 @@ def plan(
     data = json.loads(raw)
 
     return Plan(
-        task=data.get("task", task),
+        task=data.get("task", spec.title),
         modules=data.get("modules", ["app"]),
         files=data.get("files", []),
         acceptance_criteria=data.get("acceptance_criteria", []),

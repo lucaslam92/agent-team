@@ -12,6 +12,18 @@ harness:
   max_files_per_iteration: 5         # Coder: refuse if plan lists more files than this
   artifacts_dir: "./artifacts"
 
+# Input source credentials (only needed if you use Jira / Confluence)
+input:
+  jira:
+    base_url: ""                   # e.g. https://yourco.atlassian.net
+    email: ""                      # or set JIRA_EMAIL env var
+    api_token: ""                  # or set JIRA_API_TOKEN env var
+
+  confluence:
+    base_url: ""                   # same host as Jira for Cloud
+    email: ""                      # or set CONFLUENCE_EMAIL / JIRA_EMAIL
+    api_token: ""                  # or set CONFLUENCE_API_TOKEN / JIRA_API_TOKEN
+
 llm:
   default:
     provider: anthropic              # "anthropic" | "openai"

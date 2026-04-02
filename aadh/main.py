@@ -3,14 +3,18 @@
 Android Auto Dev Harness — CLI entry point.
 
 Usage:
-    python -m aadh.main --task "给设置页新增清除缓存入口，点击后弹确认框，确认后显示成功提示"
+    # Plain text
+    python -m aadh.main --task "给设置页新增清除缓存入口，点击后弹确认框"
 
-    python -m aadh.main \\
-        --task "Add a dark mode toggle to Settings" \\
-        --project-path /path/to/my-android-app \\
-        --settings /path/to/settings.yaml \\
-        --iterations 5 \\
-        --threshold 8.0
+    # Jira ticket key or URL
+    python -m aadh.main --task "AND-123"
+    python -m aadh.main --task "https://yourco.atlassian.net/browse/AND-123"
+
+    # Confluence page URL
+    python -m aadh.main --task "https://yourco.atlassian.net/wiki/spaces/ENG/pages/123456"
+
+    # Local Markdown file
+    python -m aadh.main --task ./tasks/feature.md
 """
 
 from __future__ import annotations
