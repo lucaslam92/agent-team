@@ -12,6 +12,11 @@ harness:
   max_files_per_iteration: 5         # Coder: refuse if plan lists more files than this
   artifacts_dir: "./artifacts"
 
+git:
+  auto_push: true                    # Commit + push to Android project repo after success
+  remote: "origin"
+  branch: null                       # null = push to current branch; or specify e.g. "main"
+
 llm:
   default:
     provider: anthropic              # "anthropic" | "openai"
