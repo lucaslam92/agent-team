@@ -13,6 +13,8 @@
     "graph-retrieve",
     "code-to-knowledge-interpreter",
     "graph-aware-resolver",
-    "architecture-sync"
+    "architecture-sync",
+    "knowledge-collector",
+    "knowledge-promoter"
   ]
 }
