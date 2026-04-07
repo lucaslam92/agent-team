@@ -110,9 +110,9 @@
 
 建议输出：
 
-- `company-knowbase/index/nodes.json`
-- `company-knowbase/index/edges.json`
-- `company-knowbase/index/graph_meta.json`
+- `semantic-store/index/nodes.json`
+- `semantic-store/index/edges.json`
+- `semantic-store/index/graph_meta.json`
 
 完成标准：
 
@@ -238,6 +238,71 @@ graph_score * 0.5 + domain_score * 0.3 + availability_score * 0.2
 ### TODO-007 `docs/architecture_state.json`
 
 目标：
+
+## 3.4 P1：建立 Knowbase 积累链路
+
+设计文档：
+
+[`docs/KNOWBASE_ACCUMULATION_DESIGN_v1.md`](./KNOWBASE_ACCUMULATION_DESIGN_v1.md)
+
+### TODO-009 `knowledge-collector`
+
+目标：
+
+- 从 code / PRD / design / ADR / API / mission artifacts 自动收集候选知识
+- 统一写入 `semantic-store/generated/`
+- 维护增量扫描状态
+
+完成标准：
+
+- 支持按变更源增量扫描
+- 能驱动 `extract -> graph -> interpreter`
+- 输出 candidate cards，不直接晋升到 `normalized/`
+- 更新 `state/source_registry.json`
+
+### TODO-010 `knowledge-promoter`
+
+目标：
+
+- 承接 `generated/` 到 `normalized/` 的正式晋升
+- 处理 dedupe、merge、conflict detection、promotion policy
+
+完成标准：
+
+- 能读取 candidate cards 和 normalized cards 做比较
+- 能输出 merge report
+- 能更新 `state/promotion_state.json`
+- 能按 card type 执行差异化晋升策略
+
+### TODO-011 统一 card 治理字段
+
+目标：
+
+- 为 Feature / Rule / Capability / Playbook / Capacity 增加统一治理字段
+
+最低要求：
+
+- `status`
+- `confidence`
+- `source_refs`
+- `evidence`
+- `derived_from`
+- `last_verified_at`
+- `promotion_policy`
+
+### TODO-012 generated / normalized 晋升契约
+
+目标：
+
+- 明确哪些场景写 `generated/`
+- 明确哪些场景允许进入 `normalized/`
+- 明确 Mission 默认消费边界
+
+完成标准：
+
+- 默认只消费 `normalized/`
+- `generated/` 只能在显式增强模式下参与
+- 形成稳定的 merge / promotion 契约
 
 - 固化系统当前启用的 layer、retrieval、resolver、policy
 

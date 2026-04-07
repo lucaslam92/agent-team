@@ -48,7 +48,7 @@ graph-builder
 
 - 已有 `intake_result.json`（status=proceed）
 - 已有 `repo_profile.yaml`（提供 repo_id / platform / domain 等上下文）
-- 已有 Knowbase 目录结构（`company-knowbase/` 或 `knowledge/`）
+- 已有结构化语义目录 `semantic-store/`，以及长期文档知识目录 `knowledge/`
 - 已由 prd-mission 确定 `workspace_root`、`artifact_root` 和 `run_dir`
 
 读取 `repo_profile.yaml` 获取以下字段，用于后续脚本调用：
@@ -57,7 +57,7 @@ repo_id: "..."
 platform: "backend"          # 当前 repo 主平台
 domain: ["payment", "order"] # 业务领域
 artifact_root: "./.codex/artifacts/prd" # 可选；相对路径相对于 workspace_root 解析
-global_knowbase_path: "../company-knowbase"
+global_knowbase_path: "../semantic-store"
 local_rules_path: "./knowledge/rules/local"
 local_capabilities_path: "./knowledge/capabilities/local"
 ```

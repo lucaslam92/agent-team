@@ -1,0 +1,4 @@
+interface:
+  display_name: "Knowledge Collector"
+  short_description: "Collect candidate knowbase cards from engineering changes"
+  default_prompt: "Use $knowledge-collector to harvest candidate knowbase cards from changed code, PRD, docs, or mission artifacts."

@@ -17,6 +17,8 @@ SKILLS = [
     "code-to-knowledge-interpreter",
     "graph-aware-resolver",
     "architecture-sync",
+    "knowledge-collector",
+    "knowledge-promoter",
 ]
 
 
