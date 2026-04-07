@@ -14,6 +14,8 @@ description: >
 综合所有上游 artifacts，生成完整、结构化、可执行的 PRD（产品需求文档），
 并通过 validate_final_prd.py 进行三层校验，保证 PRD 质量。
 
+所有输入输出路径均基于 prd-mission 已解析好的 `run_dir = <artifact_root>/<feature_id>/<version>/`。
+
 本 skill 分两步：
 1. **推理层**（Claude 生成）：生成 final_prd.json
 2. **脚本层**（确定性校验）：运行 `scripts/validate_final_prd.py` 做三层校验
@@ -90,7 +92,7 @@ description: >
 ### 写入路径
 
 ```
-artifacts/prd/<feature_id>/v<N>/final_prd.json
+<artifact_root>/<feature_id>/<version>/final_prd.json
 ```
 
 ---
@@ -99,9 +101,9 @@ artifacts/prd/<feature_id>/v<N>/final_prd.json
 
 ```bash
 python scripts/validate_final_prd.py \
-  --input artifacts/prd/<feature_id>/v<N>/final_prd.json \
-  --context artifacts/prd/<feature_id>/v<N>/context_summary.json \
-  --output artifacts/prd/<feature_id>/v<N>/final_prd_validation.json
+  --input <artifact_root>/<feature_id>/<version>/final_prd.json \
+  --context <artifact_root>/<feature_id>/<version>/context_summary.json \
+  --output <artifact_root>/<feature_id>/<version>/final_prd_validation.json
 ```
 
 ### 三层校验内容
@@ -143,9 +145,9 @@ python scripts/validate_final_prd.py \
 ```json
 {
   "status": "ready",
-  "version": "v<N>",
-  "previous_version": "v<N-1>",
-  "final_prd_path": "artifacts/prd/<feature_id>/v<N>/final_prd.json",
+  "version": "<version>",
+  "previous_version": "<prev_version>",
+  "final_prd_path": "<artifact_root>/<feature_id>/<version>/final_prd.json",
   "diff_summary": "本次变更摘要（若有上一版本）"
 }
 ```

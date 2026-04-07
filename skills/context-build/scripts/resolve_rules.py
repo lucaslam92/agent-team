@@ -6,6 +6,52 @@ EFFECTIVE_RULES_LIMIT = 20
 
 SPECIFICITY_ORDER = {"global": 1, "platform": 2, "repo": 3}
 
+def tokenize_text(value: str) -> list[str]:
+    text = str(value or "").lower()
+    tokens = []
+    for token in (
+        text.replace("/", " ")
+        .replace("-", " ")
+        .replace("_", " ")
+        .replace(".", " ")
+        .split()
+    ):
+        token = token.strip(" ,.:;!?()[]{}\"'")
+        if len(token) >= 3:
+            tokens.append(token)
+    return tokens
+
+def load_subgraph(path: str | None) -> dict:
+    if not path:
+        return {}
+    subgraph_path = Path(path)
+    if not subgraph_path.exists():
+        return {}
+    try:
+        return json.loads(subgraph_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+def build_graph_context(subgraph: dict) -> dict:
+    nodes = subgraph.get("expanded_nodes", []) if isinstance(subgraph, dict) else []
+    node_ids = set()
+    terms = set()
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        node_id = str(node.get("id", "")).strip()
+        if node_id:
+            node_ids.add(node_id)
+            terms.update(tokenize_text(node_id))
+        terms.update(tokenize_text(node.get("title", "")))
+        terms.update(tokenize_text(node.get("content", "")))
+        metadata = node.get("metadata", {})
+        if isinstance(metadata, dict):
+            for value in metadata.values():
+                if isinstance(value, (str, int, float)):
+                    terms.update(tokenize_text(value))
+    return {"node_ids": node_ids, "terms": terms, "node_count": len(nodes)}
+
 def load_rule_cards(paths: list) -> list:
     cards = []
     for p in paths:
@@ -46,6 +92,39 @@ def score_rule(rule: dict, platform: str, keywords: list, domains: list, feature
         kw = kw.lower()
         if kw in name or kw in summary or kw in tags: score += 2
     if platform and platform != "all" and platform.lower() in rule_platforms: score += 1
+    return score
+
+def score_rule_graph(rule: dict, graph_ctx: dict) -> int:
+    if not graph_ctx:
+        return 0
+
+    node_ids = graph_ctx.get("node_ids", set())
+    graph_terms = graph_ctx.get("terms", set())
+    score = 0
+
+    rule_id = str(rule.get("id", "")).strip()
+    if rule_id and rule_id in node_ids:
+        score += 10
+
+    for applies in rule.get("applies_to", []):
+        if str(applies) in node_ids:
+            score += 6
+
+    for token in tokenize_text(rule.get("name", "")):
+        if token in graph_terms:
+            score += 2
+    for token in tokenize_text(rule.get("summary", "")):
+        if token in graph_terms:
+            score += 1
+    for tag in rule.get("tags", []):
+        for token in tokenize_text(tag):
+            if token in graph_terms:
+                score += 2
+    for domain in rule.get("domains", []):
+        for token in tokenize_text(domain):
+            if token in graph_terms:
+                score += 2
+
     return score
 
 def specificity(rule: dict) -> int:
@@ -116,6 +195,7 @@ def main():
     p.add_argument("--input", required=True)
     p.add_argument("--global-root", required=True)
     p.add_argument("--local-root", required=True)
+    p.add_argument("--subgraph", required=False, default=None)
     p.add_argument("--output", required=True)
     a = p.parse_args()
 
@@ -126,6 +206,7 @@ def main():
     keywords = ctx.get("keywords", [])
     domains = ctx.get("domains", [])
     feature_ids = ctx.get("feature_ids", [])
+    graph_ctx = build_graph_context(load_subgraph(a.subgraph))
 
     rules = load_rule_cards([
         Path(a.global_root) / "normalized" / "rules" / "business",
@@ -143,7 +224,7 @@ def main():
         if not scope_match(r, platform, repo_id):
             filtered.append({"id": r.get("id"), "reason": "scope_mismatch"})
             continue
-        s = score_rule(r, platform, keywords, domains, feature_ids)
+        s = score_rule(r, platform, keywords, domains, feature_ids) + score_rule_graph(r, graph_ctx)
         # repo 级别规则不因 score=0 被过滤（可能是强制性规则，无关键词匹配）
         if s <= 0 and specificity(r) < SPECIFICITY_ORDER["repo"]:
             filtered.append({"id": r.get("id"), "reason": "low_relevance"})
@@ -155,7 +236,10 @@ def main():
 
     # 最终按 score 降序排列，截断至上限
     effective_scored = sorted(
-        [(score_rule(r, platform, keywords, domains, feature_ids), r) for r in effective],
+        [(
+            score_rule(r, platform, keywords, domains, feature_ids) + score_rule_graph(r, graph_ctx),
+            r,
+        ) for r in effective],
         key=lambda x: x[0], reverse=True
     )
     effective_final = [r for _, r in effective_scored[:EFFECTIVE_RULES_LIMIT]]
@@ -164,6 +248,10 @@ def main():
         "effective_rules": effective_final,
         "override_trace": override_trace,
         "filtered_out_rules": filtered[:50],
+        "graph_context": {
+            "enabled": bool(graph_ctx),
+            "node_count": graph_ctx.get("node_count", 0),
+        },
     }
 
     out = Path(a.output)

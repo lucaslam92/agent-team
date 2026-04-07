@@ -13,6 +13,8 @@ description: >
 
 对当前需求进行多端可行性评审，识别各平台技术风险、跨端冲突和 blocker 级别问题。
 
+所有输入输出路径均基于 prd-mission 已解析好的 `run_dir = <artifact_root>/<feature_id>/<version>/`。
+
 ## 触发条件（满足任一则执行）
 
 从 context_summary.json 和 intake_result.json 中检查：
@@ -95,7 +97,7 @@ description: >
 
 ## 输出格式
 
-写入 `artifacts/prd/<feature_id>/v<N>/platform_review.json`：
+写入 `<artifact_root>/<feature_id>/<version>/platform_review.json`：
 
 ```json
 {

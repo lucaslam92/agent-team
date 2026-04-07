@@ -673,3 +673,389 @@ Requirement
 ## 16. 一句话总结
 
 > **PRD Mission 是一个"AI PM + Tech Lead + Architect"的组合系统，通过 Knowbase + Resolver + Skill 协同，配合明确的条件分支、human-in-the-loop 回路和版本追踪机制，实现从需求到可执行 PRD 的自动化闭环。**
+
+---
+
+## 17. 向 AI Software Engineering System 演进
+
+PRD Mission 不是孤立存在的单一流程，它应作为更大系统中的一个 Mission 节点，纳入统一的软件工程架构中。
+
+目标演进方向：
+
+```text
+原始输入
+-> 知识抽取
+-> 图结构
+-> 语义建模
+-> 工程决策
+-> 自动执行
+```
+
+最终覆盖完整研发流程：
+
+- PRD
+- Design
+- Coding
+- Verification
+- PR
+
+从这个视角看，PRD Mission 是整个 AI Software Engineering System 在需求阶段的入口实现。
+
+---
+
+## 18. 系统级四层架构（补充）
+
+在 PRD Mission 现有三层实现基础上，建议向系统级四层架构收敛：
+
+- Layer 0: Raw Layer
+- Layer 1: Graph Layer
+- Layer 2: Semantic Layer（Knowbase）
+- Layer 3: Execution Layer（Mission）
+
+### 18.1 Layer 0：Raw Layer
+
+Raw Layer 负责承接所有未经统一建模的原始输入，包括：
+
+- PRD
+- Code
+- API
+- Docs
+- Jira
+- Figma
+- Logs
+
+特点：
+
+- 无结构
+- 多来源
+- 可能冲突
+
+该层只保留事实，不做复杂语义解释。
+
+### 18.2 Layer 1：Graph Layer
+
+Graph Layer 的目标是把多源 signals 统一转化为知识图谱：
+
+`signals -> nodes + edges`
+
+核心数据结构：
+
+`nodes.json`
+
+```json
+{
+  "id": "",
+  "type": "code | doc | api | concept",
+  "content": "",
+  "source": ""
+}
+```
+
+`edges.json`
+
+```json
+{
+  "source": "",
+  "relation": "calls | depends_on | related_to",
+  "target": ""
+}
+```
+
+核心脚本：
+
+- `extract_android_code.py`
+- `extract_web_code.py`
+- `extract_backend_code.py`
+- `merge_code_signals.py`
+- `build_graph.py`
+
+Graph 构建流程：
+
+```text
+code/doc
+-> extract
+-> signals
+-> build_graph
+-> nodes + edges
+```
+
+Graph Retrieval 是这里的关键能力：
+
+```text
+query -> seed nodes -> k-hop expansion -> subgraph
+```
+
+这将替代纯 keyword 检索。
+
+### 18.3 Layer 2：Semantic Layer（Knowbase）
+
+语义层负责把 Graph 中的结构事实提升为稳定、可复用的语义知识。
+
+知识类型包括：
+
+- Feature Card
+- Rule Card
+- Capability Card
+- Playbook Card
+- Capacity Profile Card
+
+建议目录结构：
+
+```text
+company-knowbase/
+  normalized/
+    features/
+    rules/
+      business/
+      platform/
+      engineering/
+    capabilities/
+    capacity/
+    playbooks/
+  generated/
+  index/
+    nodes.json
+    edges.json
+```
+
+生成流程：
+
+```text
+graph
+-> code-to-knowledge-interpreter
+-> normalize
+-> dedupe
+-> persist
+-> index
+```
+
+核心脚本：
+
+- `normalize_extracted_cards.py`
+- `dedupe_generated_cards.py`
+- `persist_generated_cards.py`
+- `rebuild_knowledge_index.py`
+
+### 18.4 Layer 3：Execution Layer（Mission）
+
+Mission 层负责把 Knowbase 和 Resolver 的结果转成真实的工程动作。
+
+建议 Mission 体系：
+
+- PRD Mission
+- Design Mission
+- Coding Mission
+- Verification Mission
+- PR Mission
+
+PRD Mission 只是其中一个入口 Mission。
+
+---
+
+## 19. Graph 替换检索与 Interpreter（补充）
+
+### 19.1 检索路径升级
+
+当前 PRD Mission 的上下文构建链路仍以 `retrieve_knowledge.py` 为主入口。建议逐步替换为：
+
+```text
+graph -> subgraph -> interpreter -> cards
+```
+
+替代原方案：
+
+```text
+keyword search -> cards
+```
+
+在 PRD Mission 中，Context Enrichment 应升级为：
+
+```text
+graph_retrieve
+-> resolve_rules
+-> resolve_capabilities
+-> context_summary
+```
+
+即：
+
+- `retrieve_knowledge` 逐步废弃
+- `graph_retrieve` 成为唯一推荐入口
+
+### 19.2 Interpreter 定位
+
+新增核心组件：
+
+`code-to-knowledge-interpreter`
+
+输入：
+
+```json
+{
+  "signals": {},
+  "existing_knowbase": {}
+}
+```
+
+输出：
+
+```json
+{
+  "feature_cards": [],
+  "rule_cards": [],
+  "capability_cards": []
+}
+```
+
+职责：
+
+- 合并多端信号
+- 推断业务 Feature
+- 提升 Rule（business / engineering）
+- 统一 Capability
+- 建立依赖关系
+
+边界：
+
+- LLM 只做语义提升
+- 不做 extract / persist / dedupe / index
+- 确定性处理必须由脚本承担
+
+### 19.3 graph-aware resolver
+
+Resolver 也需要升级为 graph-aware 版本：
+
+- `resolve_rules` 不再只依赖 keyword / domain
+- `resolve_capabilities` 需消费 `subgraph.json`
+- 排序应综合考虑 graph proximity、domain、availability
+
+建议排序函数：
+
+```text
+graph_score * 0.5 + domain_score * 0.3 + availability_score * 0.2
+```
+
+---
+
+## 20. 架构同步机制（补充）
+
+### 20.1 `architecture_state.json`
+
+系统级建议新增统一架构状态文件，作为多层协同的单一事实源：
+
+```json
+{
+  "version": "1.0",
+  "layers": {
+    "raw": { "enabled": true },
+    "graph": {
+      "enabled": true,
+      "retrieval": "k-hop",
+      "default_hops": 2,
+      "max_nodes": 200,
+      "allowed_relations": ["calls", "depends_on", "related_to", "implements", "owned_by"]
+    },
+    "semantic": {
+      "enabled": true,
+      "knowbase_root": "company-knowbase",
+      "card_types": ["feature", "rule", "capability", "playbook", "capacity"],
+      "dedupe": true
+    },
+    "execution": {
+      "enabled": true,
+      "missions": ["prd", "design", "coding", "verification", "pr"]
+    }
+  },
+  "resolver": {
+    "rule_priority": ["repo", "platform", "global"],
+    "capability_priority": ["feature_match", "domain_match", "availability"],
+    "graph_required": true
+  },
+  "policies": {
+    "forbid_keyword_retrieval": true,
+    "require_adr_alignment": true,
+    "require_architecture_sync": true
+  }
+}
+```
+
+约束：
+
+- 所有 Mission 执行前必须读取该文件
+- 不允许 silently fallback 到 keyword retrieval
+- 架构变更需先更新该文件，再更新实现
+
+### 20.2 ADR（必须）
+
+系统级 ADR 路径建议统一为：
+
+`docs/adr/`
+
+首批建议包含：
+
+- ADR-001: 引入 Graph Layer
+- ADR-002: Knowbase Schema
+- ADR-003: Interpreter 机制
+
+### 20.3 Claude Code / Claude CLI 使用约束
+
+新的系统能力需要考虑可被 Claude Code 或 Claude CLI 直接消费，并优先采用标准 Claude skill 方式实现，而不是依赖仓库私有运行约定。
+
+实现约束应明确：
+
+- 必须使用标准 Claude skill 目录结构组织能力
+- 每个 skill 至少包含 `SKILL.md`
+- 仅在需要时增加 `scripts/`、`references/`、`assets/`
+- `SKILL.md` 的 `description` 必须承担触发职责，清楚描述 skill 做什么、何时使用
+- 必须使用 graph retrieval
+- 不得使用 keyword retrieval 作为主路径
+- 必须遵循 `architecture_state.json`
+- 必须遵循 ADR
+
+建议的标准 skill 组织方式：
+
+```text
+<skill-name>/
+  SKILL.md
+  scripts/        # 可选，确定性处理
+  references/     # 可选，按需加载
+  assets/         # 可选，输出资源
+```
+
+对于 Claude Code / Claude CLI：
+
+- Skill 应尽量保持自描述和自包含
+- Script 应可直接通过 CLI 调用
+- 不应把运行前提绑定到 Codex 私有元数据或 UI 配置
+- Mission 编排应由 skill 之间的清晰输入输出契约驱动
+
+---
+
+## 21. 推荐实施顺序（补充）
+
+具体待补功能、优先级和实施 backlog 不再维护在设计文档中，统一迁移到独立 TODO 文件：
+
+[`docs/AI_Software_Engineering_System_TODO.md`](./AI_Software_Engineering_System_TODO.md)
+
+设计文档仅保留目标架构、原则、边界和演进方向；执行清单、缺口盘点和推进顺序统一在 TODO 文件中维护。
+
+---
+
+## 22. 系统级结论（补充）
+
+PRD Mission 的下一阶段，不只是继续细化 PRD 流程本身，而是把它纳入完整的软件工程系统：
+
+```text
+Graph（连接）
++ Semantic（语义）
++ Mission（执行）
+= AI Software Engineering System
+```
+
+从系统建设优先级看，最关键的分水岭仍然是：
+
+- `build_graph.py`
+- `graph_retrieve.py`
+- graph-aware resolver
+
+这是从“PRD 自动化”升级到“知识驱动的软件工程操作系统”的关键一步。

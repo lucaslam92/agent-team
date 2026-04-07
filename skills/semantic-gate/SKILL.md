@@ -15,6 +15,8 @@ description: >
 对 final_prd.json 进行语义一致性校验，确保文档各部分之间没有逻辑矛盾，
 是结构性校验（validate_final_prd.py）之上的推理层补充。
 
+所有输入输出路径均基于 prd-mission 已解析好的 `run_dir = <artifact_root>/<feature_id>/<version>/`。
+
 ## 触发条件（满足任一则执行）
 
 从 intake_result.json 和 context_summary.json 中检查：
@@ -58,7 +60,7 @@ PRD 内容是否与 `priority=critical` 的规则存在**内容矛盾**（不是
 
 ## 输出格式
 
-写入 `artifacts/prd/<feature_id>/<version>/semantic_gate_result.json`：
+写入 `<artifact_root>/<feature_id>/<version>/semantic_gate_result.json`：
 
 ```json
 {

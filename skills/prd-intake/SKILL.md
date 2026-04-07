@@ -19,9 +19,15 @@ description: >
 
 ---
 
-## 步骤零：确定 feature_id 和 version
+## 步骤零：确定 workspace_root、artifact_root、feature_id 和 version
 
-> **本步骤由 prd-mission skill 负责**，若直接调用本 skill，需手动确认这两个值。
+> **本步骤由 prd-mission skill 负责**，若直接调用本 skill，需手动确认这些值。
+
+**workspace_root / artifact_root 约定：**
+- `workspace_root` 指当前需求所属项目的工作区根目录，不是 skill 自身目录
+- `artifact_root` 优先取用户指定路径，其次取 `repo_profile.yaml` 或环境变量 `PRD_ARTIFACT_ROOT`
+- 若都未指定，默认使用 `<workspace_root>/.codex/artifacts/prd`
+- 本 skill 后续所有读写都基于 `run_dir = <artifact_root>/<feature_id>/<version>/`
 
 **feature_id 确定规则：**
 - Jira key（如 `ORDER-123`）→ 直接使用，如 `feature_id = "ORDER-123"`
@@ -30,7 +36,7 @@ description: >
 
 **version 确定规则：**
 ```
-检查 artifacts/prd/<feature_id>/ 目录：
+检查 <artifact_root>/<feature_id>/ 目录：
   不存在         → version="v1", revision=0
   已有 v1/       → version="v2", revision=1
   已有 v1/ v2/   → version="v3", revision=2
@@ -38,7 +44,7 @@ description: >
 
 创建目录：
 ```bash
-mkdir -p artifacts/prd/<feature_id>/<version>/
+mkdir -p <artifact_root>/<feature_id>/<version>/
 ```
 
 ---
@@ -53,7 +59,7 @@ skill 目录下的 `scripts/` 包含三个脚本，按顺序执行：
 ```bash
 python scripts/resolve_input.py \
   --input "<用户原始输入字符串>" \
-  --output artifacts/prd/<feature_id>/<version>/input_ref.json \
+  --output <artifact_root>/<feature_id>/<version>/input_ref.json \
   --revision <revision>   # 首次为 0，human-in-the-loop 补充时递增
 ```
 
@@ -73,16 +79,16 @@ raw_source.json 由 MCP 工具 fetch 后提供。**MCP 未接入时**，直接�
 }
 ```
 
-写入路径：`artifacts/prd/<feature_id>/<version>/raw_source.json`
+写入路径：`<artifact_root>/<feature_id>/<version>/raw_source.json`
 
 ### 1.3 normalize_source.py
 将 raw_source.json 标准化，提取 title、normalized_text、signals、linked_resources。
 
 ```bash
 python scripts/normalize_source.py \
-  --input artifacts/prd/<feature_id>/<version>/raw_source.json \
-  --output artifacts/prd/<feature_id>/<version>/normalized_input.json \
-  [--base artifacts/prd/<feature_id>/v<prev>/normalized_input.json]  # 仅 revision>0 时使用
+  --input <artifact_root>/<feature_id>/<version>/raw_source.json \
+  --output <artifact_root>/<feature_id>/<version>/normalized_input.json \
+  [--base <artifact_root>/<feature_id>/<prev_version>/normalized_input.json]  # 仅 revision>0 时使用
 ```
 
 ### 1.3 resolve_resources.py
@@ -93,9 +99,9 @@ python scripts/normalize_source.py \
 
 ```bash
 python scripts/resolve_resources.py \
-  --input artifacts/prd/<feature_id>/v<N>/normalized_input.json \
-  --resources-dir artifacts/prd/<feature_id>/v<N>/resources/ \
-  --output artifacts/prd/<feature_id>/v<N>/resource_index.json
+  --input <artifact_root>/<feature_id>/<version>/normalized_input.json \
+  --resources-dir <artifact_root>/<feature_id>/<version>/resources/ \
+  --output <artifact_root>/<feature_id>/<version>/resource_index.json
 ```
 
 ---
@@ -140,7 +146,7 @@ python scripts/resolve_resources.py \
 
 ### 输出格式
 
-将结果写入 `artifacts/prd/<feature_id>/v<N>/intake_result.json`：
+将结果写入 `<artifact_root>/<feature_id>/<version>/intake_result.json`：
 
 ```json
 {

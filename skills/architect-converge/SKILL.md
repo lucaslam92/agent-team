@@ -15,6 +15,8 @@ description: >
 决策必须是**具体可执行的**，不能是模糊建议。
 决策后如仍存在需业务方或跨团队确认的问题，标注 `needs_human_review=true`。
 
+所有输入输出路径均基于 prd-mission 已解析好的 `run_dir = <artifact_root>/<feature_id>/<version>/`。
+
 ## 触发条件（满足任一则执行）
 
 从 platform_review.json 中检查：
@@ -72,7 +74,7 @@ description: >
 
 ## 输出格式
 
-写入 `artifacts/prd/<feature_id>/v<N>/architect_decision.json`：
+写入 `<artifact_root>/<feature_id>/<version>/architect_decision.json`：
 
 ```json
 {

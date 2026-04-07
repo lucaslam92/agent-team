@@ -1,0 +1,65 @@
+{
+  "version": "1.0",
+  "layers": {
+    "raw": {
+      "enabled": true
+    },
+    "graph": {
+      "enabled": true,
+      "retrieval": "k-hop",
+      "default_hops": 2,
+      "max_nodes": 200,
+      "allowed_relations": [
+        "calls",
+        "depends_on",
+        "related_to",
+        "implements",
+        "required_by",
+        "conflicts_with",
+        "supersedes",
+        "owned_by"
+      ]
+    },
+    "semantic": {
+      "enabled": true,
+      "knowbase_root": "company-knowbase",
+      "card_types": [
+        "feature",
+        "rule",
+        "capability",
+        "playbook",
+        "capacity"
+      ],
+      "dedupe": true
+    },
+    "execution": {
+      "enabled": true,
+      "missions": [
+        "prd",
+        "design",
+        "coding",
+        "verification",
+        "pr"
+      ]
+    }
+  },
+  "resolver": {
+    "rule_priority": [
+      "repo",
+      "platform",
+      "global"
+    ],
+    "capability_priority": [
+      "graph_proximity",
+      "feature_match",
+      "domain_match",
+      "availability"
+    ],
+    "graph_required": true
+  },
+  "policies": {
+    "forbid_keyword_retrieval_as_primary": true,
+    "require_adr_alignment": true,
+    "require_architecture_sync": true
+  }
+}

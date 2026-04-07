@@ -1,8 +1,17 @@
-import argparse, json
+#!/usr/bin/env python3
+import argparse
+import json
+import subprocess
+import sys
 from pathlib import Path
 
 # v3 §8.3: top-k 上限与设计文档对齐
 TOP_K = {"feature": 10, "rule": 20, "capability": 15, "playbook": 5}
+
+
+def skills_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
 
 def load_cards(dir_path: str) -> list:
     base = Path(dir_path)
@@ -16,42 +25,40 @@ def load_cards(dir_path: str) -> list:
             pass
     return cards
 
+
 def extract_keywords(intake: dict) -> list:
-    """
-    v3 §9.1: intake_result 顶层字段为 task_type / affected_platforms /
-    completeness / missing_info / status，不含 requirement_brief 层。
-    从顶层字段中提取关键词。
-    """
     fields = []
-    # missing_info 列表（字符串）
     fields += intake.get("missing_info", [])
-    # 原始需求文本（由 normalize_source 传入的 normalized_text）
     fields.append(intake.get("normalized_text", ""))
-    # task_type 本身也是有效关键词
+    fields.append(intake.get("summary", ""))
     fields.append(intake.get("task_type", ""))
-    # affected_platforms
     fields += intake.get("affected_platforms", [])
 
     text = " ".join([x for x in fields if isinstance(x, str)]).lower()
     tokens = []
-    for token in text.replace("/", " ").replace("-", " ").split():
+    for token in (
+        text.replace("/", " ")
+        .replace("-", " ")
+        .replace("_", " ")
+        .replace(".", " ")
+        .split()
+    ):
         token = token.strip(" ,.:;!?()[]{}\"'")
         if len(token) >= 3:
             tokens.append(token)
     seen = set()
     result = []
-    for t in tokens:
-        if t not in seen:
-            seen.add(t)
-            result.append(t)
+    for token in tokens:
+        if token not in seen:
+            seen.add(token)
+            result.append(token)
     return result[:20]
 
+
 def extract_domains(intake: dict) -> list:
-    """从 intake 的 domains 或 signals 中推断 domain 列表"""
     domains = intake.get("domains", [])
     if domains:
         return [str(d).lower() for d in domains]
-    # 若无显式 domains，尝试从 signals 推断
     signals = intake.get("signals", {})
     inferred = []
     if signals.get("mentions_backend"):
@@ -62,6 +69,7 @@ def extract_domains(intake: dict) -> list:
         inferred.append("auth")
     return inferred
 
+
 def score_card(card: dict, keywords: list, platforms: list, domains: list) -> int:
     score = 0
     name = str(card.get("name", "")).lower()
@@ -70,62 +78,81 @@ def score_card(card: dict, keywords: list, platforms: list, domains: list) -> in
     card_domains = [str(x).lower() for x in card.get("domains", [])]
     card_platforms = [str(x).lower() for x in card.get("platforms", [])]
     for kw in keywords:
-        if kw in name: score += 3
-        if kw in summary: score += 2
-        if kw in tags: score += 2
-        if kw in card_domains: score += 2
-    for d in domains:
-        if d in card_domains: score += 2
-    for pl in platforms:
-        if pl.lower() in card_platforms: score += 1
+        if kw in name:
+            score += 3
+        if kw in summary:
+            score += 2
+        if kw in tags:
+            score += 2
+        if kw in card_domains:
+            score += 2
+    for domain in domains:
+        if domain in card_domains:
+            score += 2
+    for platform in platforms:
+        if platform.lower() in card_platforms:
+            score += 1
     return score
+
 
 def top_k(cards: list, keywords: list, platforms: list, domains: list, k: int) -> list:
     scored = []
-    for c in cards:
-        s = score_card(c, keywords, platforms, domains)
-        if s > 0:
-            scored.append((s, c))
-    scored.sort(key=lambda x: x[0], reverse=True)
-    return [c for _, c in scored[:k]]
+    for card in cards:
+        score = score_card(card, keywords, platforms, domains)
+        if score > 0:
+            scored.append((score, card))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    return [card for _, card in scored[:k]]
+
 
 def match_playbooks(playbooks: list, task_type: str, domains: list) -> list:
-    """
-    v3 §5.5: 根据 task_type 和 domain 匹配 Playbook
-    """
     matched = []
-    for pb in playbooks:
-        pb_task_types = pb.get("task_types", [])
-        pb_domains = [str(d).lower() for d in pb.get("domains", [])]
+    for playbook in playbooks:
+        pb_task_types = playbook.get("task_types", [])
+        pb_domains = [str(d).lower() for d in playbook.get("domains", [])]
         task_match = not pb_task_types or task_type in pb_task_types
-        domain_match = not pb_domains or any(d in pb_domains for d in domains)
+        domain_match = not pb_domains or any(domain in pb_domains for domain in domains)
         if task_match and domain_match:
-            matched.append(pb)
+            matched.append(playbook)
     return matched[:TOP_K["playbook"]]
 
-def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--input", required=True, help="intake_result.json 路径")
-    p.add_argument("--knowledge-root", required=True)
-    p.add_argument("--output", required=True)
-    a = p.parse_args()
 
-    intake = json.loads(Path(a.input).read_text(encoding="utf-8"))
-    root = Path(a.knowledge_root)
+def use_graph_pipeline(knowledge_root: Path) -> bool:
+    return (knowledge_root / "index" / "nodes.json").exists() and (knowledge_root / "index" / "edges.json").exists()
 
-    # v3 §9.1: 从顶层字段读取，不再读 requirement_brief
+
+def run_graph_pipeline(intake_path: Path, knowledge_root: Path, output_path: Path):
+    pipeline = skills_root() / "context-build" / "scripts" / "graph_context_pipeline.py"
+    output_dir = output_path.parent
+    subprocess.run(
+        [
+            sys.executable,
+            str(pipeline),
+            "--intake",
+            str(intake_path),
+            "--nodes",
+            str(knowledge_root / "index" / "nodes.json"),
+            "--edges",
+            str(knowledge_root / "index" / "edges.json"),
+            "--output-dir",
+            str(output_dir),
+        ],
+        check=True,
+    )
+    return json.loads(output_path.read_text(encoding="utf-8"))
+
+
+def run_legacy_fallback(intake: dict, knowledge_root: Path) -> dict:
     platforms = intake.get("affected_platforms", []) or []
     task_type = intake.get("task_type", "")
     keywords = extract_keywords(intake)
     domains = extract_domains(intake)
 
-    # 加载各类知识卡
-    feature_cards = load_cards(str(root / "normalized" / "features"))
-    rule_cards = load_cards(str(root / "normalized" / "rules"))
-    capability_cards = load_cards(str(root / "normalized" / "capabilities"))
-    playbook_cards_all = load_cards(str(root / "normalized" / "playbooks"))
+    feature_cards = load_cards(str(knowledge_root / "normalized" / "features"))
+    rule_cards = load_cards(str(knowledge_root / "normalized" / "rules"))
+    capability_cards = load_cards(str(knowledge_root / "normalized" / "capabilities"))
 
-    result = {
+    return {
         "query": {
             "keywords": keywords,
             "domains": domains,
@@ -135,13 +162,58 @@ def main():
         "feature_cards": top_k(feature_cards, keywords, platforms, domains, TOP_K["feature"]),
         "rule_cards": top_k(rule_cards, keywords, platforms, domains, TOP_K["rule"]),
         "capability_cards": top_k(capability_cards, keywords, platforms, domains, TOP_K["capability"]),
-        # v3 §5.5: 新增 Playbook 检索
-        "playbook_cards": match_playbooks(playbook_cards_all, task_type, domains),
+        "playbook_cards": [],
+        "metadata": {
+            "source": "legacy_keyword_fallback",
+        },
     }
 
-    out = Path(a.output)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", required=True, help="intake_result.json 路径")
+    parser.add_argument("--knowledge-root", required=True)
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+
+    intake_path = Path(args.input)
+    output_path = Path(args.output)
+    knowledge_root = Path(args.knowledge_root)
+    intake = json.loads(intake_path.read_text(encoding="utf-8"))
+    domains = extract_domains(intake)
+    task_type = intake.get("task_type", "")
+    playbook_cards_all = load_cards(str(knowledge_root / "normalized" / "playbooks"))
+    matched_playbooks = match_playbooks(playbook_cards_all, task_type, domains)
+
+    if use_graph_pipeline(knowledge_root):
+        result = run_graph_pipeline(intake_path, knowledge_root, output_path)
+        metadata = result.get("metadata", {})
+        metadata.update(
+            {
+                "source": "graph_first_wrapper",
+                "pipeline": "graph_context_pipeline",
+                "fallback_used": False,
+            }
+        )
+        result["metadata"] = metadata
+    else:
+        result = run_legacy_fallback(intake, knowledge_root)
+        metadata = result.get("metadata", {})
+        metadata.update(
+            {
+                "source": "legacy_keyword_fallback",
+                "pipeline": "retrieve_knowledge",
+                "fallback_used": True,
+                "warning": "graph index missing; used legacy keyword retrieval",
+            }
+        )
+        result["metadata"] = metadata
+
+    result["playbook_cards"] = matched_playbooks
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+
 
 if __name__ == "__main__":
     main()

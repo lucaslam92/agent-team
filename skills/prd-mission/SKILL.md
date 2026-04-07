@@ -1,9 +1,11 @@
 ---
 name: prd-mission
 description: >
-  PRD Mission 流水线的统一入口和编排层。
-  当用户提供一个需求（Jira / Doc / 文本）并希望自动生成结构化 PRD 时使用此 skill。
-  负责初始化运行上下文（feature_id / version）、按条件调用各阶段 skill、
+  PRD Mission 流水线的统一入口和编排层，用于把需求输入转成结构化 PRD。
+  当用户提供 Jira、文档链接或自由文本需求，并希望生成 PRD、写需求文档、
+  将需求整理成正式 PRD、自动化产品需求产出，或把需求输入推进为完整 PRD 流程时，
+  使用此 skill；即使用户没有明确提到 prd-mission，只要意图是从需求生成 PRD，
+  也应触发。负责初始化运行上下文（workspace_root / artifact_root / feature_id / version）、按条件调用各阶段 skill、
   管理所有早退出和 human-in-the-loop 分支，最终输出 mission_result.json。
 ---
 
@@ -11,7 +13,42 @@ description: >
 
 ## 一、启动前：初始化运行上下文
 
-在调用任何子 skill 之前，先确定本次运行的两个关键参数：
+在调用任何子 skill 之前，先确定本次运行的四个关键参数：`workspace_root`、`artifact_root`、`feature_id`、`version`。
+
+### workspace_root（本次任务的目标工作区根目录）
+
+`workspace_root` 指本次需求所属的项目工作区根目录，不是 skill 自身所在目录。
+
+按以下优先级确定：
+1. 若用户明确指定了目标项目路径 / 仓库路径 → 直接使用
+2. 若当前线程已经在目标项目工作区中执行任务 → 使用当前工作区根目录
+3. 若 `repo_profile.yaml` 中显式提供 `workspace_root` → 使用该值
+4. 若仍无法唯一确定 → 暂停并请用户选择输出工作区，不要默认落到 skill 仓库目录
+
+当需要用户确认时，优先给出这些选项：
+- 当前任务所在工作区根目录
+- `repo_profile.yaml` 中声明的项目路径
+- 用户显式提供的自定义绝对路径
+
+### artifact_root（运行产物根目录）
+
+所有 PRD 运行产物都写到 `artifact_root` 下。若用户给的是相对路径，统一相对于 `workspace_root` 解析。
+
+按以下优先级确定：
+1. 若用户明确指定输出目录（如“产物写到 `/tmp/prd-runs`”或“写到 `docs/prd-artifacts`”）→ 直接使用
+2. 若 `repo_profile.yaml` 中提供 `artifact_root` → 使用该值
+3. 若环境变量 `PRD_ARTIFACT_ROOT` 已设置 → 使用该值
+4. 否则默认使用 `<workspace_root>/.codex/artifacts/prd`
+
+### run_dir（本次运行目录）
+
+后续所有 stage 都以：
+
+```text
+run_dir = <artifact_root>/<feature_id>/<version>/
+```
+
+作为统一读写目录。
 
 ### feature_id（功能标识）
 
@@ -24,15 +61,15 @@ description: >
 ### version（运行版本号）
 
 ```
-artifacts_dir = artifacts/prd/<feature_id>/
+artifacts_dir = <artifact_root>/<feature_id>/
 如果该目录不存在   → version = "v1"，revision = 0
 如果已存在 v1/     → version = "v2"，revision = 1
 如果已存在 v1/ v2/ → version = "v3"，revision = 2
 以此类推
 ```
 
-> 所有后续步骤的 artifact 路径统一为：`artifacts/prd/<feature_id>/<version>/`
-> 创建该目录：`mkdir -p artifacts/prd/<feature_id>/<version>/`
+> 所有后续步骤的 artifact 路径统一为：`<artifact_root>/<feature_id>/<version>/`
+> 创建该目录：`mkdir -p <artifact_root>/<feature_id>/<version>/`
 
 ---
 
@@ -121,10 +158,19 @@ artifacts_dir = artifacts/prd/<feature_id>/
 
 ## 三、Artifact 路径约定
 
-所有 artifact 统一存放在 `artifacts/prd/<feature_id>/<version>/` 下：
+所有 artifact 统一存放在 `run_dir = <artifact_root>/<feature_id>/<version>/` 下。
+
+默认情况下：
+
+```text
+artifact_root = <workspace_root>/.codex/artifacts/prd
+run_dir = <workspace_root>/.codex/artifacts/prd/<feature_id>/<version>/
+```
+
+若用户或配置显式覆盖，则使用覆盖后的 `artifact_root`。
 
 ```
-artifacts/prd/<feature_id>/<version>/
+<artifact_root>/<feature_id>/<version>/
 ├── input_ref.json              (Stage 1 - resolve_input.py)
 ├── raw_source.json             (Stage 1 - MCP 或 fallback 构造)
 ├── normalized_input.json       (Stage 1 - normalize_source.py)
@@ -197,7 +243,7 @@ MCP 未接入时，根据 input_ref.json 的 `input_kind` 手动构造 raw_sourc
 }
 ```
 
-将此文件写入 `artifacts/prd/<feature_id>/<version>/raw_source.json`，再继续执行 normalize_source.py。
+将此文件写入 `<artifact_root>/<feature_id>/<version>/raw_source.json`，再继续执行 normalize_source.py。
 
 ---
 
@@ -210,7 +256,7 @@ MCP 未接入时，根据 input_ref.json 的 `input_kind` 手动构造 raw_sourc
   "feature_id": "payment-callback-retry",
   "version": "v1",
   "previous_version": null,
-  "final_prd_path": "artifacts/prd/payment-callback-retry/v1/final_prd.json",
+  "final_prd_path": "<artifact_root>/payment-callback-retry/v1/final_prd.json",
   "stages_executed": ["intake", "context-build", "platform-review", "prd-compile"],
   "stages_skipped": ["architect-converge", "semantic-gate"]
 }
