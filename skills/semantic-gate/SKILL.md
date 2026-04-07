@@ -58,7 +58,7 @@ PRD 内容是否与 `priority=critical` 的规则存在**内容矛盾**（不是
 
 ## 输出格式
 
-写入 `artifacts/prd/<feature_id>/v<N>/semantic_gate_result.json`：
+写入 `artifacts/prd/<feature_id>/<version>/semantic_gate_result.json`：
 
 ```json
 {
@@ -104,8 +104,10 @@ else
 **`failed`**：
 - 展示 `issues` 列表给用户，说明哪些章节存在语义矛盾
 - 决策权交给用户：
-  - 若问题可在 PRD 层修复 → 重新触发 prd-compile（携带 semantic issues 作为修复指令）
+  - 若问题可在 PRD 层修复 → 将 `semantic_gate_result.json` 的路径作为上下文，重新触发 prd-compile。prd-compile 在步骤一生成 PRD 时，需读取该文件的 `issues` 字段作为 `semantic_errors` 修复指令（与 `validation_errors` 并列，但 attempt 计数独立重置为 0）
   - 若问题需要重新收集需求 → 回到 prd-intake，更新 `_revision`
+
+> **接口约定**：semantic-gate 触发的 prd-compile 重跑，通过 `semantic_gate_result.json` 文件传递问题。prd-compile 每次执行前检查该文件是否存在，若存在且 `status=failed`，则在生成 PRD 时同时纳入 `semantic_errors` 修复指令。
 
 ---
 

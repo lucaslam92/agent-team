@@ -21,8 +21,11 @@ description: >
 - `cross_platform_conflicts` 数量 > 0
 - `blockers` 数量 > 0
 
-从 context_summary.json 中检查：
-- `effective_rules` 中存在被 override 的 critical 规则（通过 override_trace 判断）
+从 `effective_rules.json` 中检查（注意：不是 context_summary.json）：
+- `override_trace` 数组中存在 `priority=critical` 的规则被覆盖（即 `overridden_rule.priority == "critical"`）
+
+> `override_trace` 字段由 resolve_rules.py 写入 `effective_rules.json`，记录每条覆盖关系。
+> context_summary.json 中的 `effective_rules` 是压缩摘要，不含 override_trace，不能用于此判断。
 
 **不满足时**：写入空对象 `{}` 到 architect_decision.json，跳过本 skill，直接进入 prd-compile。
 

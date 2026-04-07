@@ -19,6 +19,30 @@ description: >
 
 ---
 
+## 步骤零：确定 feature_id 和 version
+
+> **本步骤由 prd-mission skill 负责**，若直接调用本 skill，需手动确认这两个值。
+
+**feature_id 确定规则：**
+- Jira key（如 `ORDER-123`）→ 直接使用，如 `feature_id = "ORDER-123"`
+- GDoc / Confluence URL → 取 URL 中的文档 ID 后 8 位
+- 纯文本 → 从关键名词生成 slug（如 "添加支付回调重试" → `"payment-callback-retry"`）
+
+**version 确定规则：**
+```
+检查 artifacts/prd/<feature_id>/ 目录：
+  不存在         → version="v1", revision=0
+  已有 v1/       → version="v2", revision=1
+  已有 v1/ v2/   → version="v3", revision=2
+```
+
+创建目录：
+```bash
+mkdir -p artifacts/prd/<feature_id>/<version>/
+```
+
+---
+
 ## 步骤一：运行输入解析脚本
 
 skill 目录下的 `scripts/` 包含三个脚本，按顺序执行：
@@ -29,22 +53,36 @@ skill 目录下的 `scripts/` 包含三个脚本，按顺序执行：
 ```bash
 python scripts/resolve_input.py \
   --input "<用户原始输入字符串>" \
-  --output artifacts/prd/<feature_id>/v<N>/input_ref.json \
-  --revision <N>   # 首次为 0，human-in-the-loop 补充时递增
+  --output artifacts/prd/<feature_id>/<version>/input_ref.json \
+  --revision <revision>   # 首次为 0，human-in-the-loop 补充时递增
 ```
 
-### 1.2 normalize_source.py
-将 MCP 获取的 raw_source.json 标准化，提取 title、normalized_text、signals、linked_resources。
+### 1.2 构造 raw_source.json
 
-> **注意**：raw_source.json 由 MCP 工具（Jira / GDoc / Confluence MCP）fetch 后提供。
-> 若 MCP 尚未接入，直接将用户输入作为 raw_source 的 `source_ref` 字段传入。
-> human-in-the-loop 补充轮次时，传入 `--base` 参数指向上一轮 normalized_input.json。
+raw_source.json 由 MCP 工具 fetch 后提供。**MCP 未接入时**，直接构造并写入：
+
+```json
+{
+  "source_type": "<input_ref.input_kind>",
+  "source_id": "<input_ref.source_id>",
+  "title": "",
+  "description": "<用户原始输入完整文本>",
+  "metadata": {},
+  "comments": [],
+  "attachments": []
+}
+```
+
+写入路径：`artifacts/prd/<feature_id>/<version>/raw_source.json`
+
+### 1.3 normalize_source.py
+将 raw_source.json 标准化，提取 title、normalized_text、signals、linked_resources。
 
 ```bash
 python scripts/normalize_source.py \
-  --input artifacts/prd/<feature_id>/v<N>/raw_source.json \
-  --output artifacts/prd/<feature_id>/v<N>/normalized_input.json \
-  [--base artifacts/prd/<feature_id>/v<N-1>/normalized_input.json]  # 仅补充轮次使用
+  --input artifacts/prd/<feature_id>/<version>/raw_source.json \
+  --output artifacts/prd/<feature_id>/<version>/normalized_input.json \
+  [--base artifacts/prd/<feature_id>/v<prev>/normalized_input.json]  # 仅 revision>0 时使用
 ```
 
 ### 1.3 resolve_resources.py

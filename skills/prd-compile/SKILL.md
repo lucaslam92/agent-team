@@ -83,7 +83,9 @@ description: >
 
 **架构决策融入**：若 architect_decision.json 非空，将 `decisions` 中每条决策的 `description` 体现到对应平台的 `platform_implementation.approach` 或 `implementation_hint` 中
 
-**修复指令模式**：若传入 `validation_errors`（重试场景），针对每条 error 修复，不改动其他已正确的章节
+**修复指令模式**：
+- 若存在 `validation_errors`（validate 重试场景），针对每条 error 修复，不改动其他已正确章节
+- 若 `semantic_gate_result.json` 存在且 `status=failed`（semantic-gate 回退场景），同时纳入其 `issues` 字段作为 `semantic_errors` 修复指令。两类错误分别处理，attempt 计数独立（semantic 回退时 attempt 重置为 0）
 
 ### 写入路径
 
@@ -121,9 +123,11 @@ python scripts/validate_final_prd.py \
 **`valid`**：校验通过，继续进入 semantic-gate（条件触发）或直接输出终态
 
 **`invalid` + `can_auto_fix=true`**（Layer 1 问题）：
-- 将 `issues` 作为修复指令，重新执行步骤一（生成 PRD），最多重试 **2 次**
-- 重试时在 PRD 生成输入中附加 `validation_errors: <issues列表>`
-- 重试计数在当前 skill 内部维护，超过 2 次则转为 blocked
+- 读取 `final_prd_validation.json` 中的 `attempt` 字段（首次为 1）
+- 若 `attempt < 3`：将 `issues` 作为修复指令，重新执行步骤一（生成 PRD），在 PRD 生成输入中附加 `validation_errors: <issues列表>`，生成后再次运行校验脚本，校验结果写回文件时 `attempt` +1
+- 若 `attempt >= 3`：转为 blocked，等待人工介入
+
+> **重要**：Claude 是无状态的，重试计数必须持久化到文件中。每次执行本 skill 前先读取 `final_prd_validation.json` 的 `attempt` 字段判断重试次数，不能依赖会话内存状态。
 
 **`invalid` + `can_auto_fix=false`**（Layer 2/3 问题）：
 - 立即停止，进入 human-in-the-loop 回路

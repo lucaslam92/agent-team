@@ -45,9 +45,9 @@ local_capabilities_path: "./knowledge/capabilities/local"
 
 ```bash
 python scripts/retrieve_knowledge.py \
-  --input artifacts/prd/<feature_id>/v<N>/intake_result.json \
+  --input artifacts/prd/<feature_id>/<version>/intake_result.json \
   --knowledge-root <global_knowbase_path> \
-  --output artifacts/prd/<feature_id>/v<N>/context_candidates.json
+  --output artifacts/prd/<feature_id>/<version>/context_candidates.json
 ```
 
 输出包含：`feature_cards`（最多10）、`rule_cards`（最多20）、`capability_cards`（最多15）、`playbook_cards`（最多5）
@@ -58,35 +58,48 @@ python scripts/retrieve_knowledge.py \
 
 ```bash
 python scripts/expand_relations.py \
-  --input artifacts/prd/<feature_id>/v<N>/context_candidates.json \
+  --input artifacts/prd/<feature_id>/<version>/context_candidates.json \
   --knowledge-root <global_knowbase_path> \
-  --output artifacts/prd/<feature_id>/v<N>/context_expanded.json
+  --output artifacts/prd/<feature_id>/<version>/context_expanded.json
 ```
 
 ### 1.3 resolve_rules.py
 从 global + local 规则库中，按 stage / scope / 相关性过滤并 override，输出有效规则。
 **关键**：repo 规则 > platform 规则 > global 规则，同主题规则按 specificity 显式覆盖。
 
+先将 resolver context 写入临时文件，再传给脚本（避免 bash process substitution 兼容性问题）：
+
 ```bash
+# 从 intake_result.json 提取 keywords（来自 summary/domains）、domains、feature_ids
+# platform 和 repo_id 从 repo_profile.yaml 读取
+cat > /tmp/resolver_ctx.json << 'EOF'
+{
+  "stage": "prd",
+  "platform": "<platform>",
+  "repo_id": "<repo_id>",
+  "keywords": ["<keyword1>", "..."],
+  "domains": ["<domain1>", "..."],
+  "feature_ids": ["<feature_id1>", "..."]
+}
+EOF
+
 python scripts/resolve_rules.py \
-  --input <(echo '{"stage":"prd","platform":"<platform>","repo_id":"<repo_id>","keywords":[...],"domains":[...],"feature_ids":[...]}') \
+  --input /tmp/resolver_ctx.json \
   --global-root <global_knowbase_path> \
   --local-root ./knowledge \
-  --output artifacts/prd/<feature_id>/v<N>/effective_rules.json
+  --output artifacts/prd/<feature_id>/<version>/effective_rules.json
 ```
-
-> 从 intake_result.json 中提取 `keywords`（来自 summary/domains）、`domains`、`feature_ids`；
-> `platform` 和 `repo_id` 从 `repo_profile.yaml` 读取。
 
 ### 1.4 resolve_capabilities.py
 从 global + local capability 库中，按相关性排序，ready 优先，输出有效能力。
 
 ```bash
+# 复用上一步写入的 /tmp/resolver_ctx.json（内容相同，stage 已为 "prd"）
 python scripts/resolve_capabilities.py \
-  --input <(echo '{"stage":"prd","platform":"<platform>","keywords":[...],"domains":[...],"feature_ids":[...]}') \
+  --input /tmp/resolver_ctx.json \
   --global-root <global_knowbase_path> \
   --local-root ./knowledge \
-  --output artifacts/prd/<feature_id>/v<N>/effective_capabilities.json
+  --output artifacts/prd/<feature_id>/<version>/effective_capabilities.json
 ```
 
 ---
@@ -131,7 +144,7 @@ python scripts/resolve_capabilities.py \
 
 ### 输出格式
 
-写入 `artifacts/prd/<feature_id>/v<N>/context_summary.json`：
+写入 `artifacts/prd/<feature_id>/<version>/context_summary.json`：
 
 ```json
 {
@@ -150,15 +163,7 @@ python scripts/resolve_capabilities.py \
 
 ## 下游流程决策
 
-输出 context_summary.json 后，检查触发条件决定下一步：
-
-**触发 platform-review skill 的条件**（满足任一）：
-- `open_risks` 数量 > 0
-- `platform_constraints` 数量 > 0
-- `intake_result.task_type` 为 `new_feature` 或 `breaking_change`
-- `affected_platforms` 数量 > 1
-
-若不满足，跳过 platform-review，直接进入 **prd-compile** skill。
+输出 context_summary.json 后，将结果传递给 **prd-mission** 编排层，由它根据触发条件决定是否进入 platform-review skill。触发条件的判断逻辑定义在 prd-mission SKILL.md 中。
 
 ---
 
