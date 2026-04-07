@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graph Retrieve"
+  short_description: "Retrieve bounded subgraphs from graph indexes"
+  default_prompt: "Use $graph-retrieve to fetch a k-hop subgraph for this engineering query."

@@ -1,0 +1,18 @@
+{
+  "source_root": "/Users/lindonghua/Documents/project/agent/auto-dev-agent/skills",
+  "target_root": "/Users/lindonghua/Documents/project/agent/auto-dev-agent/portable-skills",
+  "skills": [
+    "prd-mission",
+    "prd-intake",
+    "context-build",
+    "platform-review",
+    "architect-converge",
+    "prd-compile",
+    "semantic-gate",
+    "graph-builder",
+    "graph-retrieve",
+    "code-to-knowledge-interpreter",
+    "graph-aware-resolver",
+    "architecture-sync"
+  ]
+}

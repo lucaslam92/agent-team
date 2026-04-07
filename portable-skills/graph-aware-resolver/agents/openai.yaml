@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graph Aware Resolver"
+  short_description: "Resolve rules and capabilities with graph context"
+  default_prompt: "Use $graph-aware-resolver to produce effective rules and capabilities from this subgraph and resolver context."

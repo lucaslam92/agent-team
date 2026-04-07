@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code To Knowledge Interpreter"
+  short_description: "Interpret graph evidence into knowbase cards"
+  default_prompt: "Use $code-to-knowledge-interpreter to turn this subgraph into feature, rule, and capability cards."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "PRD Mission"
+  short_description: "Orchestrate structured PRD generation workflows"
+  default_prompt: "Use $prd-mission to turn this requirement input into a structured PRD workflow."

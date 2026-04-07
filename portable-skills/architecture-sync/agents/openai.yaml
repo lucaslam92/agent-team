@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Sync"
+  short_description: "Keep architecture docs and implementation aligned"
+  default_prompt: "Use $architecture-sync to update architecture_state.json, ADRs, and related skills for this architectural change."
