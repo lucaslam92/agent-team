@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/frontend-design/data_binding_plan.schema.json",
+  "title": "Frontend Data Binding Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["feature_id", "request_bindings", "response_mapping", "error_mapping", "cache_strategy", "polling_or_subscription", "async_refresh_rules"],
+  "properties": {
+    "feature_id": { "type": "string" },
+    "request_bindings": { "type": "array", "items": { "$ref": "#/$defs/binding" } },
+    "response_mapping": { "type": "array", "items": { "$ref": "#/$defs/binding" } },
+    "error_mapping": { "type": "array", "items": { "$ref": "#/$defs/binding" } },
+    "cache_strategy": { "type": "array", "items": { "type": "string" } },
+    "polling_or_subscription": { "type": "array", "items": { "type": "string" } },
+    "async_refresh_rules": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "target"],
+      "properties": {
+        "source": { "type": "string" },
+        "target": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

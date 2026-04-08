@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/frontend-design/ui_structure.schema.json",
+  "title": "Frontend UI Structure",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["feature_id", "page_sections", "component_tree", "reusable_blocks", "empty_loading_error_states"],
+  "properties": {
+    "feature_id": { "type": "string" },
+    "page_sections": { "type": "array", "items": { "$ref": "#/$defs/pageSection" } },
+    "component_tree": { "type": "array", "items": { "$ref": "#/$defs/componentTree" } },
+    "reusable_blocks": { "type": "array", "items": { "type": "string" } },
+    "empty_loading_error_states": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "pageSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id", "sections"],
+      "properties": {
+        "page_id": { "type": "string" },
+        "sections": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "componentTree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id", "nodes"],
+      "properties": {
+        "page_id": { "type": "string" },
+        "nodes": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

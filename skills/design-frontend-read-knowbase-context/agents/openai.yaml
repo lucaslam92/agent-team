@@ -1,0 +1,3 @@
+display_name: Frontend Knowbase Context
+short_description: Compile frontend-specific knowbase context into one artifact.
+default_prompt: Read the frontend-relevant knowbase sources and emit a single knowbase_context.json.

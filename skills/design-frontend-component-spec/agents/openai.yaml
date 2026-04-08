@@ -1,0 +1,3 @@
+display_name: Frontend Component Spec
+short_description: Generate the frontend component contract and reuse plan.
+default_prompt: Produce component_spec.json from UI structure and knowbase context.

@@ -1,0 +1,3 @@
+display_name: Frontend Data Binding
+short_description: Generate the frontend data binding plan.
+default_prompt: Produce data_binding_plan.json from contract and state models.

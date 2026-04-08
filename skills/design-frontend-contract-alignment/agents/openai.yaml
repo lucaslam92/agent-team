@@ -1,0 +1,3 @@
+display_name: Frontend Contract Alignment
+short_description: Generate the frontend-facing contract view.
+default_prompt: Build frontend_contract_view.json from final_prd and backend contract context.

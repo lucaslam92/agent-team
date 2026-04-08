@@ -1,0 +1,3 @@
+display_name: Frontend Compile Doc
+short_description: Compile the frontend design doc, task graph, and context snapshot.
+default_prompt: Build the final frontend design package from the structured design assets.

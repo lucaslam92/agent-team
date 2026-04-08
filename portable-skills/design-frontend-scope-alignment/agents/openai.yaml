@@ -1,0 +1,3 @@
+display_name: Frontend Scope Alignment
+short_description: Freeze frontend scope and backend boundaries before deeper design.
+default_prompt: Generate frontend_scope.json from final_prd, repo context, and knowbase context.

@@ -211,6 +211,12 @@ artifacts/design/frontend/
   design_check_report.json
 ```
 
+对应的 schema 草稿统一放在：
+
+```text
+docs/schemas/frontend-design/
+```
+
 ### 5.1 `frontend_scope.json`
 
 作用：定义前端职责边界。
@@ -462,8 +468,24 @@ Design Mission 中已经明确：
 - `design.frontend.state_model`
 - `design.frontend.component_spec`
 - `design.frontend.data_binding`
+- `design.frontend.quality_plan`
 - `design.frontend.compile_doc`
 - `design.frontend.verify`
+
+当前仓库中的对应 skill 目录为：
+
+- `skills/design-frontend-read-inputs`
+- `skills/design-frontend-read-knowbase-context`
+- `skills/design-frontend-scope-alignment`
+- `skills/design-frontend-contract-alignment`
+- `skills/design-frontend-information-architecture`
+- `skills/design-frontend-interaction-design`
+- `skills/design-frontend-state-model`
+- `skills/design-frontend-component-spec`
+- `skills/design-frontend-data-binding`
+- `skills/design-frontend-quality-plan`
+- `skills/design-frontend-compile-doc`
+- `skills/design-frontend-verify`
 
 这些 skill 的共同要求是：
 

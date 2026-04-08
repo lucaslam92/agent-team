@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/frontend-design/page_map.schema.json",
+  "title": "Frontend Page Map",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["feature_id", "pages", "entry_points", "page_goals", "acceptance_refs"],
+  "properties": {
+    "feature_id": { "type": "string" },
+    "pages": { "type": "array", "items": { "$ref": "#/$defs/page" } },
+    "entry_points": { "type": "array", "items": { "type": "string" } },
+    "page_goals": { "type": "array", "items": { "$ref": "#/$defs/pageGoal" } },
+    "acceptance_refs": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "summary"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "summary": { "type": "string" }
+      }
+    },
+    "pageGoal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id", "goal"],
+      "properties": {
+        "page_id": { "type": "string" },
+        "goal": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/frontend-design/state_model.schema.json",
+  "title": "Frontend State Model",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["feature_id", "server_state", "view_state", "transient_state", "derived_state", "state_transitions"],
+  "properties": {
+    "feature_id": { "type": "string" },
+    "server_state": { "type": "array", "items": { "type": "string" } },
+    "view_state": { "type": "array", "items": { "type": "string" } },
+    "transient_state": { "type": "array", "items": { "type": "string" } },
+    "derived_state": { "type": "array", "items": { "type": "string" } },
+    "state_transitions": { "type": "array", "items": { "$ref": "#/$defs/transition" } }
+  },
+  "$defs": {
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "trigger"],
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "trigger": { "type": "string" }
+      }
+    }
+  }
+}

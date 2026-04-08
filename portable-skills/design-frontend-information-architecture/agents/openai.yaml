@@ -1,0 +1,3 @@
+display_name: Frontend IA
+short_description: Generate page, navigation, and UI structure assets.
+default_prompt: Build page_map.json, navigation_map.json, and ui_structure.json.

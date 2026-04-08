@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/frontend-design/interaction_spec.schema.json",
+  "title": "Frontend Interaction Spec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["feature_id", "user_actions", "validations", "feedback", "optimistic_updates", "retry_patterns", "degraded_experience"],
+  "properties": {
+    "feature_id": { "type": "string" },
+    "user_actions": { "type": "array", "items": { "type": "string" } },
+    "validations": { "type": "array", "items": { "type": "string" } },
+    "feedback": { "type": "array", "items": { "type": "string" } },
+    "optimistic_updates": { "type": "array", "items": { "type": "string" } },
+    "retry_patterns": { "type": "array", "items": { "type": "string" } },
+    "degraded_experience": { "type": "array", "items": { "type": "string" } }
+  }
+}

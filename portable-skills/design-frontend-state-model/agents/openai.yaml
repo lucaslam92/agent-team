@@ -1,0 +1,3 @@
+display_name: Frontend State Model
+short_description: Generate the frontend state model.
+default_prompt: Produce state_model.json from the feature contract and page map.

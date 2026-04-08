@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/frontend-design/repo_context.schema.json",
+  "title": "Frontend Repo Context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "repo_id",
+    "repo_name",
+    "platform",
+    "primary_stack",
+    "module_roots",
+    "pages",
+    "routes",
+    "components",
+    "state_management",
+    "architecture_constraints"
+  ],
+  "properties": {
+    "repo_id": { "type": "string" },
+    "repo_name": { "type": "string" },
+    "platform": { "type": "string", "enum": ["web", "android", "ios", "cross_platform"] },
+    "primary_stack": { "type": "string" },
+    "module_roots": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "pages": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/namedEntry" }
+    },
+    "routes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/routeEntry" }
+    },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/namedEntry" }
+    },
+    "state_management": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "design_system": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "architecture_constraints": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "source_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "namedEntry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "summary": { "type": "string" },
+        "path": { "type": "string" }
+      }
+    },
+    "routeEntry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "path"],
+      "properties": {
+        "id": { "type": "string" },
+        "path": { "type": "string" },
+        "summary": { "type": "string" }
+      }
+    }
+  }
+}

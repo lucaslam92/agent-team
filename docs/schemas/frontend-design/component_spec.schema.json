@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/frontend-design/component_spec.schema.json",
+  "title": "Frontend Component Spec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["feature_id", "components"],
+  "properties": {
+    "feature_id": { "type": "string" },
+    "components": { "type": "array", "items": { "$ref": "#/$defs/component" } }
+  },
+  "$defs": {
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "props", "events", "dependencies", "reuse_level", "constraints"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "props": { "type": "array", "items": { "type": "string" } },
+        "events": { "type": "array", "items": { "type": "string" } },
+        "dependencies": { "type": "array", "items": { "type": "string" } },
+        "reuse_level": { "type": "string", "enum": ["page_local", "feature_local", "shared"] },
+        "constraints": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

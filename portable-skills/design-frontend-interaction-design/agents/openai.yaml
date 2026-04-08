@@ -1,0 +1,3 @@
+display_name: Frontend Interaction
+short_description: Generate interaction behavior and failure handling.
+default_prompt: Produce interaction_spec.json from final_prd and the contract view.

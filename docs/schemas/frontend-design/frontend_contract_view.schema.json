@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/frontend-design/frontend_contract_view.schema.json",
+  "title": "Frontend Contract View",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "feature_id",
+    "feature_name",
+    "platform",
+    "basis",
+    "consumed_apis",
+    "consumed_events",
+    "local_commands",
+    "async_states",
+    "ui_visible_errors",
+    "fallback_contracts",
+    "acceptance_mapping"
+  ],
+  "properties": {
+    "version": { "type": "string" },
+    "feature_id": { "type": "string" },
+    "feature_name": { "type": "string" },
+    "platform": { "type": "string" },
+    "basis": { "type": "array", "items": { "type": "string" } },
+    "consumed_apis": { "type": "array", "items": { "$ref": "#/$defs/api" } },
+    "consumed_events": { "type": "array", "items": { "$ref": "#/$defs/event" } },
+    "local_commands": { "type": "array", "items": { "$ref": "#/$defs/command" } },
+    "async_states": { "type": "array", "items": { "$ref": "#/$defs/asyncState" } },
+    "ui_visible_errors": { "type": "array", "items": { "$ref": "#/$defs/uiError" } },
+    "fallback_contracts": { "type": "array", "items": { "$ref": "#/$defs/command" } },
+    "acceptance_mapping": { "type": "array", "items": { "$ref": "#/$defs/mapping" } }
+  },
+  "$defs": {
+    "api": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "purpose", "source_contract_ref", "request_shape", "response_shape", "ui_states", "error_states", "retry_behavior", "optimistic_behavior", "cache_behavior", "acceptance_refs", "test_requirements"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "purpose": { "type": "string" },
+        "source_contract_ref": { "type": "string" },
+        "request_shape": { "type": "object" },
+        "response_shape": { "type": "object" },
+        "ui_states": { "type": "array", "items": { "type": "string" } },
+        "error_states": { "type": "array", "items": { "type": "string" } },
+        "retry_behavior": { "type": "string" },
+        "optimistic_behavior": { "type": "string" },
+        "cache_behavior": { "type": "string" },
+        "acceptance_refs": { "type": "array", "items": { "type": "string" } },
+        "test_requirements": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "source_contract_ref", "trigger", "ui_impact"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "source_contract_ref": { "type": "string" },
+        "trigger": { "type": "string" },
+        "ui_impact": { "type": "string" }
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "summary"],
+      "properties": {
+        "id": { "type": "string" },
+        "summary": { "type": "string" },
+        "acceptance_refs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "asyncState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trigger", "pending_state", "success_state", "failure_state", "refresh_behavior"],
+      "properties": {
+        "trigger": { "type": "string" },
+        "pending_state": { "type": "string" },
+        "success_state": { "type": "string" },
+        "failure_state": { "type": "string" },
+        "refresh_behavior": { "type": "string" }
+      }
+    },
+    "uiError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "category", "user_message_strategy", "retryable", "blocking"],
+      "properties": {
+        "code": { "type": "string" },
+        "category": { "type": "string" },
+        "user_message_strategy": { "type": "string" },
+        "retryable": { "type": "boolean" },
+        "blocking": { "type": "boolean" }
+      }
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acceptance_ref", "ui_refs", "checks"],
+      "properties": {
+        "acceptance_ref": { "type": "string" },
+        "ui_refs": { "type": "array", "items": { "type": "string" } },
+        "checks": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

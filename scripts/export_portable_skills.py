@@ -29,6 +29,18 @@ SKILLS = [
     "design-backend-quality-plan",
     "design-backend-compile-doc",
     "design-backend-verify",
+    "design-frontend-read-inputs",
+    "design-frontend-read-knowbase-context",
+    "design-frontend-scope-alignment",
+    "design-frontend-contract-alignment",
+    "design-frontend-information-architecture",
+    "design-frontend-interaction-design",
+    "design-frontend-state-model",
+    "design-frontend-component-spec",
+    "design-frontend-data-binding",
+    "design-frontend-quality-plan",
+    "design-frontend-compile-doc",
+    "design-frontend-verify",
 ]
 
 
