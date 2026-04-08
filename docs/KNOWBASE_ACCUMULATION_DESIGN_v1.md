@@ -562,16 +562,51 @@ PRD Mission、Design Mission、Coding Mission 等不应直接依赖未治理的�
 
 当前仓库已具备以下首版能力：
 
-- `knowledge-collector`：增量扫描 code / docs / API / ADR / artifacts / PR metadata
-- `knowledge-promoter`：执行 dedupe / merge / supersede / conflict detection / review queue
-- `rebuild_semantic_index.py`：基于 `normalized/` 重建 `index/`
-- `run_knowbase_accumulation.py`：串联 collector -> promoter -> index refresh
+- 长期知识层
+  - `knowledge/` 已形成长期文档知识承载层
+  - 已覆盖业务背景、系统总览、前端技术栈、前端组件规则、后端整体架构、容量与性能约束
+- 结构化语义层
+  - `semantic-store/` 已形成 `generated/`、`normalized/`、`index/`、`state/` 四层分离
+  - 已具备 candidate、promotion state、dedupe index、review decision template 等运行时状态文件
+- 自动收集
+  - `knowledge-collector` 已支持增量扫描 code / PRD / design / ADR / API / mission artifacts / PR metadata / git changeset
+  - 已增强对 architecture docs、frontend stack、frontend component rules、capacity docs 的抽取
+- 语义提升
+  - interpreter 已能输出 `feature_cards`、`rule_cards`、`capability_cards`、`capacity_cards`
+  - collector 已能把 capacity 候选写入 `generated/candidates/capacity/`
+- 晋升治理
+  - `knowledge-promoter` 已支持 dedupe、merge、supersede、conflict detection、review queue
+  - 已支持 `approve / review / reject` 与 `same_as / supersedes / conflicts_with` 契约
+  - 已收紧 doc-derived capability 的默认晋升，避免静默 auto-promote
+- 手动正式晋升入口
+  - `run_knowbase_accumulation.py`：串联 collector -> promoter -> index refresh
+  - `run_pr_merge_promotion.py`：将手动 PR merge 操作视为正式晋升
+  - `make knowbase-accumulate`
+  - `make knowbase-pr-merge`
+- 索引刷新
+  - `rebuild_semantic_index.py` 已支持基于 `normalized/` 重建 `index/`
+- 可移植技能包
+  - portable skills 已同步包含 `knowledge-collector`、`knowledge-promoter` 及相关增强脚本
+
+现阶段的明确结论是：
+
+- knowbase 所需的主干知识收集能力已经齐备
+- 系统已经可以从“只做设计”进入“实际持续使用”
+- 当前阶段更偏“完整首版”，而不是“最终完备版”
 
 当前仍建议继续增强：
 
-- 将该入口进一步接入 mission 终态或 PR merge 自动触发点
-- 增强人工审核决策 schema 和协作流程
-- 补更细的 card-specific promotion policy
+- 提高 extractor 深度
+  - 针对不同语言、平台、文档类型引入更强的专用抽取器
+- 继续收紧分类与晋升策略
+  - 进一步优化 architecture / rule / capability / capacity 的边界
+- 完善中央知识库与 repo-local overlay 的同步机制
+  - 当前设计已明确，但自动同步与回流流程仍可继续产品化
+- 强化人工审核流程
+  - 增强 review decision schema、审核说明、协作入口
+- 视需要接入自动触发
+  - 当前已具备手动 PR merge 正式晋升入口
+  - 后续如需要，可再接入 mission 终态或 Git 平台事件
 
 ## 13. 推荐落地顺序
 
