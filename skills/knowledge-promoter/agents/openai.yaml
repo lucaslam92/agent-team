@@ -1,0 +1,4 @@
+interface:
+  display_name: "Knowledge Promoter"
+  short_description: "Promote candidate cards into the formal knowbase"
+  default_prompt: "Use $knowledge-promoter to dedupe, review, and promote candidate knowbase cards into the normalized knowbase."
