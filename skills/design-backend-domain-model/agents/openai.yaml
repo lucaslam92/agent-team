@@ -1,0 +1,3 @@
+display_name: Backend Domain Model
+short_description: Generate the backend domain model and state machines.
+default_prompt: Produce domain_model.json for the backend feature from scope and final_prd.

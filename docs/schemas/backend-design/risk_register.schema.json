@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/backend-design/risk_register.schema.json",
+  "title": "Backend Risk Register",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feature_id",
+    "risks"
+  ],
+  "properties": {
+    "feature_id": {
+      "type": "string"
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/risk"
+      }
+    }
+  },
+  "$defs": {
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "summary",
+        "severity",
+        "mitigation"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "impact": {
+          "type": "string"
+        },
+        "mitigation": {
+          "type": "string"
+        },
+        "blocking": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

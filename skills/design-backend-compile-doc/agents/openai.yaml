@@ -1,0 +1,3 @@
+display_name: Backend Compile Doc
+short_description: Compile the backend design doc, task graph, and context snapshot.
+default_prompt: Build the final backend design package from the structured design assets.

@@ -1,0 +1,3 @@
+display_name: Backend Quality Plan
+short_description: Generate backend quality and risk assets.
+default_prompt: Produce quality_plan.json and risk_register.json for the backend feature.

@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/backend-design/repo_context.schema.json",
+  "title": "Backend Repo Context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "repo_id",
+    "repo_name",
+    "primary_service",
+    "primary_language",
+    "module_roots",
+    "services",
+    "modules",
+    "owned_domains",
+    "layering_rules",
+    "dependency_constraints",
+    "integration_constraints"
+  ],
+  "properties": {
+    "repo_id": {
+      "type": "string"
+    },
+    "repo_name": {
+      "type": "string"
+    },
+    "primary_service": {
+      "type": "string"
+    },
+    "primary_language": {
+      "type": "string"
+    },
+    "module_roots": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "services": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/namedEntry"
+      }
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/namedEntry"
+      }
+    },
+    "owned_domains": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "existing_apis": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/apiEntry"
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/namedEntry"
+      }
+    },
+    "layering_rules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "dependency_constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "integration_constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "namedEntry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    "apiEntry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "method",
+        "path"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

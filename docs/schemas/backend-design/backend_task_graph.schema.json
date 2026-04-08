@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/backend-design/backend_task_graph.schema.json",
+  "title": "Backend Task Graph",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "feature_id",
+    "service",
+    "generated_from",
+    "execution_policy",
+    "tasks",
+    "checkpoints",
+    "final_gate"
+  ],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "feature_id": {
+      "type": "string"
+    },
+    "service": {
+      "type": "string"
+    },
+    "generated_from": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "execution_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default_parallelism"
+      ],
+      "properties": {
+        "default_parallelism": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/task"
+      },
+      "minItems": 1
+    },
+    "checkpoints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/checkpoint"
+      }
+    },
+    "final_gate": {
+      "$ref": "#/$defs/finalGate"
+    }
+  },
+  "$defs": {
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "category",
+        "module",
+        "depends_on",
+        "priority",
+        "acceptance_refs",
+        "goal",
+        "done_when",
+        "verification_hooks",
+        "retryable",
+        "blocking"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "api",
+            "domain",
+            "storage",
+            "integration",
+            "event",
+            "job",
+            "observability",
+            "test"
+          ]
+        },
+        "module": {
+          "type": "string"
+        },
+        "depends_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "parallel_group": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "from_contract": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "from_design_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "acceptance_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "goal": {
+          "type": "string"
+        },
+        "files_hint": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "implementation_notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "done_when": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verification_hooks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "compile",
+              "lint",
+              "unit_test",
+              "integration_test",
+              "contract_test",
+              "smoke_test",
+              "manual_rule_check"
+            ]
+          }
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "type": "boolean"
+        }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "summary",
+        "task_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "task_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "finalGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "required_checks",
+        "blocking_issues"
+      ],
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "required_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blocking_issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/backend-design/domain_model.schema.json",
+  "title": "Backend Domain Model",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feature_id",
+    "entities",
+    "value_objects",
+    "aggregates",
+    "state_machines",
+    "invariants"
+  ],
+  "properties": {
+    "feature_id": {
+      "type": "string"
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/modelEntry"
+      }
+    },
+    "value_objects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/modelEntry"
+      }
+    },
+    "aggregates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/aggregate"
+      }
+    },
+    "state_machines": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/stateMachine"
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "modelEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "summary"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        }
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "root"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "root": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "stateMachine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "states",
+        "transitions"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "states": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/transition"
+          }
+        }
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "trigger"
+      ],
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

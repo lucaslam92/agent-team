@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/backend-design/design_check_report.schema.json",
+  "title": "Backend Design Check Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feature_id",
+    "summary",
+    "verifier_results",
+    "gate_results",
+    "open_issues"
+  ],
+  "properties": {
+    "feature_id": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "blocking_issue_count"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "degraded",
+            "failed"
+          ]
+        },
+        "blocking_issue_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "warning_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "verifier_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/verifierResult"
+      }
+    },
+    "gate_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/gateResult"
+      }
+    },
+    "open_issues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "repair_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "resume_from": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "verifierResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verifier_id",
+        "status",
+        "blocking",
+        "findings"
+      ],
+      "properties": {
+        "verifier_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "warning",
+            "failed"
+          ]
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        },
+        "repair_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "gateResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "status"
+      ],
+      "properties": {
+        "gate_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed"
+          ]
+        },
+        "blocking_issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "summary",
+        "severity"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      }
+    }
+  }
+}

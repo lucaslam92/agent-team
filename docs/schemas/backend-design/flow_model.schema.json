@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/backend-design/flow_model.schema.json",
+  "title": "Backend Flow Model",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feature_id",
+    "main_flows",
+    "error_flows",
+    "retry_flows",
+    "compensation_flows"
+  ],
+  "properties": {
+    "feature_id": {
+      "type": "string"
+    },
+    "main_flows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/flow"
+      }
+    },
+    "error_flows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/flow"
+      }
+    },
+    "retry_flows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/flow"
+      }
+    },
+    "compensation_flows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/flow"
+      }
+    }
+  },
+  "$defs": {
+    "flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "summary",
+        "steps"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        },
+        "acceptance_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "action"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "actor": {
+          "type": "string"
+        },
+        "writes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "publishes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

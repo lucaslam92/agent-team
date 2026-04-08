@@ -1,0 +1,3 @@
+display_name: Backend Read Inputs
+short_description: Normalize backend design inputs into a gated snapshot.
+default_prompt: Build the normalized backend design input snapshot before any downstream design work.

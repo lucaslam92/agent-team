@@ -19,6 +19,16 @@ SKILLS = [
     "architecture-sync",
     "knowledge-collector",
     "knowledge-promoter",
+    "design-backend-read-inputs",
+    "design-backend-read-knowbase-context",
+    "design-backend-scope-alignment",
+    "design-backend-api-contract",
+    "design-backend-domain-model",
+    "design-backend-flow-model",
+    "design-backend-storage-plan",
+    "design-backend-quality-plan",
+    "design-backend-compile-doc",
+    "design-backend-verify",
 ]
 
 

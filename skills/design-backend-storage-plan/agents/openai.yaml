@@ -1,0 +1,3 @@
+display_name: Backend Storage Plan
+short_description: Generate persistence, cache, topic, and dependency planning.
+default_prompt: Produce storage_plan.json from backend design inputs and models.

@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/backend-design/storage_plan.schema.json",
+  "title": "Backend Storage Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feature_id",
+    "tables",
+    "indexes",
+    "cache",
+    "topics",
+    "external_dependencies",
+    "migration_plan"
+  ],
+  "properties": {
+    "feature_id": {
+      "type": "string"
+    },
+    "tables": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/table"
+      }
+    },
+    "indexes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/index"
+      }
+    },
+    "cache": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/resource"
+      }
+    },
+    "topics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/resource"
+      }
+    },
+    "external_dependencies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/resource"
+      }
+    },
+    "migration_plan": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "table": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "writes_from": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "index": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "table",
+        "columns"
+      ],
+      "properties": {
+        "table": {
+          "type": "string"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unique": {
+          "type": "boolean"
+        }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "kind"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

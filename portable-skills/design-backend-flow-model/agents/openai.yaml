@@ -1,0 +1,3 @@
+display_name: Backend Flow Model
+short_description: Generate backend main, error, retry, and compensation flows.
+default_prompt: Produce flow_model.json from final_prd and the backend contract.

@@ -1,0 +1,3 @@
+display_name: Backend API Contract
+short_description: Generate the backend API, event, and job contract.
+default_prompt: Build api_contract.yaml as the implementation-ready backend contract.

@@ -65,6 +65,34 @@ existing_api_specs/
 architecture_constraints.json
 ```
 
+最低必需字段建议固定为：
+
+- `repo_context.json`
+  - repo_id
+  - repo_name
+  - primary_service
+  - primary_language
+  - module_roots
+- `service_inventory.json`
+  - services
+  - modules
+  - owned_domains
+- `architecture_constraints.json`
+  - layering_rules
+  - dependency_constraints
+  - integration_constraints
+
+缺失处理规则：
+
+- 缺少 `primary_service`、`services`、`modules`、`layering_rules` 任一关键字段：
+  - `read_design_inputs` 输出 `blocked`
+- 缺少 `existing_api_specs/` 但本需求涉及新增或变更接口：
+  - 输出 `degraded`
+  - 必须在 `design_context_snapshot.json` 和 `risk_register.json` 中记录
+- 缺少非关键补充字段：
+  - 允许继续
+  - 但必须把缺口写入 `assumptions` 与 `open_issues`
+
 ### 2.3 `knowbase_context`
 
 来自 Knowbase 的结构化提取结果。
@@ -181,6 +209,12 @@ artifacts/design/backend/
   design_check_report.json
 ```
 
+对应的 schema 草稿统一放在：
+
+```text
+docs/schemas/backend-design/
+```
+
 ### 5.1 `backend_scope.json`
 
 作用：定义后端职责边界。
@@ -203,13 +237,39 @@ artifacts/design/backend/
 - architecture_constraints
 - backend_rules
 - api_rules
+- data_rules
 - testing_rules
 - technical_stack
+- anti_patterns
 - resolved_references
+- unresolved_gaps
+- extraction_status
 
 它的定位是：
 
 > 后续所有 backend design skill 统一消费的知识上下文。
+
+建议固定 schema 为：
+
+```text
+knowbase_context.json
+  business_context
+  architecture_constraints
+  backend_rules
+  api_rules
+  data_rules
+  testing_rules
+  technical_stack
+    language
+    framework
+    storage
+    cache
+    mq
+  anti_patterns
+  resolved_references
+  unresolved_gaps
+  extraction_status
+```
 
 ### 5.3 `api_contract.yaml`
 
@@ -314,6 +374,26 @@ artifacts/design/backend/
 
 作用：汇总所有 verifier 的检查结果，作为最终 gate 判断依据之一。
 
+建议固定最小 schema：
+
+- summary
+  - overall_status
+  - blocking_issue_count
+  - warning_count
+- gate_results
+  - scope_gate
+  - contract_gate
+  - implementation_ready_gate
+- verifier_results
+  - verifier_id
+  - status
+  - blocking
+  - findings
+  - repair_actions
+  - related_artifacts
+- unresolved_issues
+- recommended_resume_from
+
 ---
 
 ## 6. `read_knowbase_context` 设计
@@ -363,7 +443,31 @@ artifacts/design/backend/
 - cache
 - mq
 
-### 6.5 结论
+### 6.5 提取状态与降级语义
+
+`read_knowbase_context` 不应只有“成功/失败”两种结果，而应固定输出以下状态之一：
+
+- `ready`
+  - 关键知识约束齐全，可直接进入后续设计 skill
+- `degraded`
+  - 可以继续设计
+  - 但存在缺失约束，必须记录到 `unresolved_gaps`
+- `blocked`
+  - 关键知识缺失，不能继续
+
+建议阻断条件：
+
+- 无法解析服务边界
+- 无法解析关键 layering / integration constraints
+- 无法判断与当前 feature 相关的 backend rules
+
+建议降级条件：
+
+- 技术栈事实不完整
+- anti_patterns 不完整
+- testing rules 只有部分匹配
+
+### 6.6 结论
 
 Design Mission 中已经明确：
 
@@ -385,6 +489,19 @@ Design Mission 中已经明确：
 - `design.backend.quality_plan`
 - `design.backend.compile_doc`
 - `design.backend.verify`
+
+当前仓库中的对应 skill 目录为：
+
+- `skills/design-backend-read-inputs`
+- `skills/design-backend-read-knowbase-context`
+- `skills/design-backend-scope-alignment`
+- `skills/design-backend-api-contract`
+- `skills/design-backend-domain-model`
+- `skills/design-backend-flow-model`
+- `skills/design-backend-storage-plan`
+- `skills/design-backend-quality-plan`
+- `skills/design-backend-compile-doc`
+- `skills/design-backend-verify`
 
 这些 skill 的共同要求是：
 
@@ -603,16 +720,56 @@ Design Mission 中已经明确：
 - 有异步恢复 → job
 - 有观测要求 → observability
 
+每个 event 最少拆出：
+
+- event
+- domain
+- test
+
+如满足条件，再增加：
+
+- 有持久化或 outbox → storage
+- 有外部消费者或第三方集成 → integration
+- 有补偿或重放 → job
+- 有审计/监控要求 → observability
+
+每个 job 最少拆出：
+
+- job
+- domain
+- test
+
+如满足条件，再增加：
+
+- 有状态落盘 → storage
+- 有外部系统交互 → integration
+- 有派生事件 → event
+- 有运行观测要求 → observability
+
+也就是说，`backend_task_graph.json` 不能只从 API 视角生成，而应同时支持：
+
+- API-first backend feature
+- event-first backend feature
+- job-first backend feature
+
 ### 9.6 依赖规则
 
 当前默认依赖关系为：
 
 - domain 先于 storage
 - storage / domain 先于 api
+- domain / storage 先于 event
 - event 依赖 api / storage
 - job 依赖 event
+- job 也可直接依赖 domain / storage（当其不通过 event 触发时）
 - test 依赖被测 task
 - observability 依赖被观测对象
+
+补充约束：
+
+- 若 event 由 API 触发，则 `api -> event`
+- 若 event 由 domain decision 触发，则 `domain -> event`
+- 若 job 为补偿逻辑，则 `job` 必须依赖触发它的失败链路或 event
 
 ### 9.7 粒度规则
 
@@ -642,6 +799,14 @@ Design Mission 中已经明确：
 ### 9.10 `final_gate`
 
 用于定义 backend implementation 何时 truly ready。
+
+建议至少包含：
+
+- required_checkpoints
+- required_verification_hooks
+- blocking_risks
+- unresolved_assumptions
+- acceptance_coverage_threshold
 
 ---
 

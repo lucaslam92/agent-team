@@ -1,0 +1,3 @@
+display_name: Backend Scope Alignment
+short_description: Freeze backend scope and shared contracts before deeper design.
+default_prompt: Generate backend_scope.json from final_prd, repo context, and knowbase context.

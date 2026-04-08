@@ -1,0 +1,3 @@
+display_name: Backend Knowbase Context
+short_description: Compile backend-specific knowbase context into one structured artifact.
+default_prompt: Read the backend-relevant knowbase sources and emit a single knowbase_context.json.

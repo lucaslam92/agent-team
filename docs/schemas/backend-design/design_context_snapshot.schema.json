@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/backend-design/design_context_snapshot.schema.json",
+  "title": "Backend Design Context Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feature_id",
+    "prd_source",
+    "repo_context_sources",
+    "knowbase_sources",
+    "key_constraints"
+  ],
+  "properties": {
+    "feature_id": {
+      "type": "string"
+    },
+    "prd_source": {
+      "type": "string"
+    },
+    "repo_context_sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "knowbase_sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "key_constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "degraded",
+        "blocked"
+      ]
+    }
+  }
+}

@@ -1,0 +1,3 @@
+display_name: Backend Verify
+short_description: Verify backend design readiness and emit the gate report.
+default_prompt: Run backend design verifiers and produce design_check_report.json.
