@@ -9,6 +9,7 @@
     "summary",
     "verifier_results",
     "gate_results",
+    "analyzer_results",
     "open_issues"
   ],
   "properties": {
@@ -51,6 +52,12 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/gateResult"
+      }
+    },
+    "analyzer_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/analyzerResult"
       }
     },
     "open_issues": {
@@ -113,7 +120,8 @@
       "additionalProperties": false,
       "required": [
         "gate_id",
-        "status"
+        "status",
+        "criteria_results"
       ],
       "properties": {
         "gate_id": {
@@ -127,6 +135,41 @@
           ]
         },
         "blocking_issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "criteria_results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/criterionResult"
+          }
+        },
+        "analyzer_ref": {
+          "type": "string"
+        }
+      }
+    },
+    "criterionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "criterion",
+        "status"
+      ],
+      "properties": {
+        "criterion": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed"
+          ]
+        },
+        "evidence": {
           "type": "array",
           "items": {
             "type": "string"
@@ -156,6 +199,40 @@
             "medium",
             "high"
           ]
+        }
+      }
+    },
+    "analyzerResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "analyzer_id",
+        "failure_type",
+        "reasons",
+        "repair_actions",
+        "resume_from"
+      ],
+      "properties": {
+        "analyzer_id": {
+          "type": "string"
+        },
+        "failure_type": {
+          "type": "string"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "repair_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resume_from": {
+          "type": "string"
         }
       }
     }

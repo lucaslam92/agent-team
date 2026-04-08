@@ -397,6 +397,33 @@ docs/schemas/frontend-design/
 
 作用：汇总所有 verifier 的检查结果，作为最终 gate 判断依据之一。
 
+建议固定最小 schema：
+
+- summary
+  - overall_status
+  - blocking_issue_count
+  - warning_count
+- gate_results
+  - scope_gate
+  - ux_contract_gate
+  - implementation_ready_gate
+  - criteria_results
+  - analyzer_ref
+- verifier_results
+  - verifier_id
+  - status
+  - blocking
+  - findings
+  - repair_actions
+- analyzer_results
+  - analyzer_id
+  - failure_type
+  - reasons
+  - repair_actions
+  - resume_from
+- unresolved_issues
+- recommended_resume_from
+
 ---
 
 ## 6. `read_knowbase_context` 设计
@@ -784,6 +811,7 @@ figma_context.json
 - `frontend_navigation_integrity_verifier`
 - `frontend_state_model_verifier`
 - `frontend_component_reuse_verifier`
+- `design_knowbase_alignment_verifier`
 - `frontend_stack_conformance_verifier`
 - `frontend_operability_verifier`
 - `frontend_task_executability_verifier`

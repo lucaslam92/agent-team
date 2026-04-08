@@ -384,6 +384,8 @@ knowbase_context.json
   - scope_gate
   - contract_gate
   - implementation_ready_gate
+  - criteria_results
+  - analyzer_ref
 - verifier_results
   - verifier_id
   - status
@@ -391,6 +393,12 @@ knowbase_context.json
   - findings
   - repair_actions
   - related_artifacts
+- analyzer_results
+  - analyzer_id
+  - failure_type
+  - reasons
+  - repair_actions
+  - resume_from
 - unresolved_issues
 - recommended_resume_from
 

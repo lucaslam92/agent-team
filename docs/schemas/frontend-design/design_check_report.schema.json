@@ -4,7 +4,7 @@
   "title": "Frontend Design Check Report",
   "type": "object",
   "additionalProperties": false,
-  "required": ["feature_id", "summary", "verifier_results", "gate_results", "open_issues"],
+  "required": ["feature_id", "summary", "verifier_results", "gate_results", "analyzer_results", "open_issues"],
   "properties": {
     "feature_id": { "type": "string" },
     "summary": {
@@ -19,6 +19,7 @@
     },
     "verifier_results": { "type": "array", "items": { "$ref": "#/$defs/verifierResult" } },
     "gate_results": { "type": "array", "items": { "$ref": "#/$defs/gateResult" } },
+    "analyzer_results": { "type": "array", "items": { "$ref": "#/$defs/analyzerResult" } },
     "open_issues": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
     "repair_actions": { "type": "array", "items": { "type": "string" } },
     "resume_from": { "type": "string" }
@@ -39,11 +40,23 @@
     "gateResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["gate_id", "status"],
+      "required": ["gate_id", "status", "criteria_results"],
       "properties": {
         "gate_id": { "type": "string" },
         "status": { "type": "string", "enum": ["passed", "failed"] },
-        "blocking_issues": { "type": "array", "items": { "type": "string" } }
+        "blocking_issues": { "type": "array", "items": { "type": "string" } },
+        "criteria_results": { "type": "array", "items": { "$ref": "#/$defs/criterionResult" } },
+        "analyzer_ref": { "type": "string" }
+      }
+    },
+    "criterionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["criterion", "status"],
+      "properties": {
+        "criterion": { "type": "string" },
+        "status": { "type": "string", "enum": ["passed", "failed"] },
+        "evidence": { "type": "array", "items": { "type": "string" } }
       }
     },
     "finding": {
@@ -54,6 +67,18 @@
         "id": { "type": "string" },
         "summary": { "type": "string" },
         "severity": { "type": "string", "enum": ["low", "medium", "high"] }
+      }
+    },
+    "analyzerResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["analyzer_id", "failure_type", "reasons", "repair_actions", "resume_from"],
+      "properties": {
+        "analyzer_id": { "type": "string" },
+        "failure_type": { "type": "string" },
+        "reasons": { "type": "array", "items": { "type": "string" } },
+        "repair_actions": { "type": "array", "items": { "type": "string" } },
+        "resume_from": { "type": "string" }
       }
     }
   }
