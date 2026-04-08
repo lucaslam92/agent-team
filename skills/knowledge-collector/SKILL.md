@@ -15,12 +15,14 @@ This skill is the right entrypoint when the goal is:
 - scan changed engineering inputs
 - produce candidate cards, not final approved knowledge
 - keep the generated knowbase layer warm for later promotion
+- extract frontend stack, backend architecture, and capacity constraints into graph-friendly evidence
 
 ## Built-in Source Adapters
 
 The bundled script already applies deterministic adapters before graph build:
 
 - `PRD / Design`: headings, feature sections, rule sentences, capability hints
+- `Architecture / Rules / Capacity Docs`: architecture lines, tech-stack lines, frontend component constraints, capacity constraints
 - `ADR`: decision-oriented sections and rule sentences
 - `Code`: files, imports, classes, functions, service-like symbols
 - `API`: endpoint-like paths and verb/path pairs
@@ -94,6 +96,16 @@ Prefer using these sibling skills:
 - `code-to-knowledge-interpreter`
 
 Hand off final approval and promotion to `knowledge-promoter`.
+
+When the goal is to run collection, promotion, and index refresh in one command, prefer:
+
+```bash
+python ../../scripts/run_knowbase_accumulation.py \
+  --workspace-root <workspace_root> \
+  --knowledge-root <company_knowbase_root> \
+  --source <workspace_root>/docs \
+  --source <workspace_root>/artifacts
+```
 
 ## Run
 

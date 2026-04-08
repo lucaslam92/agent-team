@@ -18,14 +18,18 @@
 ## Architecture
 
 - `architecture/system_overview.md`
+- `architecture/knowledge_topology.md`
+- `architecture/frontend_stack.md`
 - `architecture/backend_architecture.md`
 - `architecture/android_architecture.md`
 - `architecture/ios_architecture.md`
 - `architecture/web_architecture.md`
+- `architecture/capacity_profile.md`
 
 ## Rules
 
 - `rules/backend_rules.md`
+- `rules/frontend_component_rules.md`
 - `rules/android_rules.md`
 - `rules/ios_rules.md`
 - `rules/web_rules.md`

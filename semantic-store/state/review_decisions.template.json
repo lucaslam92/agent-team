@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "candidate_key": "feature:feature_example_v1",
+      "action": "approve",
+      "note": "Approved after implementation and acceptance criteria review."
+    },
+    {
+      "candidate_key": "rule:rule_example_v1",
+      "action": "review",
+      "note": "Keep as candidate until code and contract evidence are both available."
+    },
+    {
+      "candidate_key": "capability:capability_example_v2",
+      "action": "reject",
+      "note": "Duplicate capability; keep the existing canonical card."
+    }
+  ]
+}

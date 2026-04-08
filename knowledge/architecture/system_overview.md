@@ -20,6 +20,22 @@
   - 结构化语义知识
   - 包含 `generated/`、`normalized/`、`index/`、`state/`
 
+## Global And Local Overlay
+
+知识体系推荐按“中央知识库仓库 + repo-local overlay”运行：
+
+- 中央知识库仓库
+  - 放共享业务背景、平台规则、ADR、容量基线
+  - 放跨仓库可复用的 `semantic-store/normalized/` 与 `index/`
+- 各端代码仓库
+  - 放 repo-local `artifacts/`
+  - 放 repo-local `knowledge/rules/local/`、`knowledge/capabilities/local/`
+  - 放 repo-local `semantic-store/generated/`、`state/`
+
+运行时优先级固定为：
+
+`repo-local > platform/shared > global`
+
 ## Mission Flow
 
 默认研发闭环为：
@@ -40,6 +56,15 @@
 - 长期文档知识：`knowledge/`
 - 正式结构化知识：`semantic-store/normalized/`
 - 结构化候选与状态：`semantic-store/generated/`、`semantic-store/state/`
+
+## Platform Knowledge Themes
+
+当前长期知识建议至少覆盖：
+
+- 前端技术栈、组件使用约束、状态管理与导航边界
+- 后端模块划分、分层、同步/异步边界、可靠性要求
+- API 契约与兼容性规则
+- 容量与性能预算、SLO、扩缩容约束
 
 ## Working Rule
 

@@ -247,6 +247,12 @@ graph_score * 0.5 + domain_score * 0.3 + availability_score * 0.2
 
 ### TODO-009 `knowledge-collector`
 
+当前状态：
+
+- 已有首版实现
+- 已支持 code / PRD / design / ADR / API / mission artifacts / PR metadata 的候选采集
+- 已能写入 `semantic-store/generated/` 并维护 `state/source_registry.json`
+
 目标：
 
 - 从 code / PRD / design / ADR / API / mission artifacts 自动收集候选知识
@@ -262,6 +268,12 @@ graph_score * 0.5 + domain_score * 0.3 + availability_score * 0.2
 
 ### TODO-010 `knowledge-promoter`
 
+当前状态：
+
+- 已有首版实现
+- 已支持 dedupe、merge、conflict detection、promotion policy
+- 已能输出 `merge-reports/`、`review-queue/`、`promotion_state.json`、`dedupe_index.json`
+
 目标：
 
 - 承接 `generated/` 到 `normalized/` 的正式晋升
@@ -275,6 +287,11 @@ graph_score * 0.5 + domain_score * 0.3 + availability_score * 0.2
 - 能按 card type 执行差异化晋升策略
 
 ### TODO-011 统一 card 治理字段
+
+当前状态：
+
+- 基础治理字段已落入 collector / promoter 首版实现
+- 后续重点从“是否存在字段”转为“是否在所有 card 类型上稳定收敛”
 
 目标：
 
@@ -291,6 +308,14 @@ graph_score * 0.5 + domain_score * 0.3 + availability_score * 0.2
 - `promotion_policy`
 
 ### TODO-012 generated / normalized 晋升契约
+
+当前状态：
+
+- 设计文档已明确默认消费 `normalized/`
+- `knowledge-promoter` 已建立 `approve / review / reject` 与 `same_as / supersedes / conflicts_with` 契约
+- 仓库级 `run_knowbase_accumulation.py` 已可串起 collector -> promoter -> index refresh
+- 仓库级 `run_pr_merge_promotion.py` 已可将手动 PR merge 操作视为正式晋升触发
+- `Makefile` 已提供 `make knowbase-pr-merge` 简化入口
 
 目标：
 

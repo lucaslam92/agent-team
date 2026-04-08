@@ -166,6 +166,115 @@ repo/docs changes
 - 质量波动更大
 - 需要显式晋升治理
 
+### 4.2.1 当前已实现的 source adapters
+
+当前仓库中的 `knowledge-collector` 已经具备首版脚本实现，核心入口为：
+
+```text
+skills/knowledge-collector/scripts/collect_knowledge.py
+```
+
+当前已支持的输入源包括：
+
+- `PRD / Design / README / 通用文档`
+  - 按标题和 section 拆分
+  - 抽取 rule-like sentences
+  - 抽取 capability-like lines
+- `Architecture / Rules / Capacity Docs`
+  - 抽取 architecture lines
+  - 抽取 tech stack lines
+  - 抽取 frontend component constraints
+  - 抽取 capacity and performance constraints
+- `Code`
+  - 抽取 imports
+  - 抽取 class / function / symbol
+  - 对 service-like symbol 建能力信号
+- `API 文档`
+  - 抽取 endpoint
+  - 抽取 `HTTP verb + path`
+- `Mission Artifacts`
+  - 支持 `context_summary`
+  - 支持 `effective_rules`
+  - 支持 `effective_capabilities`
+  - 支持 `final_prd`
+  - 支持 `mission_result`、`review_result`、`validation_result`
+- `PR metadata`
+  - 支持 PR title / body / labels / changed files
+- `Git changeset`
+  - 支持基于 `git diff` 或 merge 范围生成 changeset signal
+
+这些 adapter 的职责是把不同输入源先统一转换成 graph-friendly signals，再进入：
+
+```text
+signals
+-> build_graph
+-> graph_retrieve
+-> interpreter
+-> candidate cards
+```
+
+### 4.2.2 当前实现边界
+
+虽然上述输入源已经有脚本支持，但当前仍属于“首版可用”而不是“最终完备版”，主要边界包括：
+
+- 文档解析仍以 section / sentence / line 级启发式为主，不是领域专用 parser
+- code 抽取仍以通用符号和 import 关系为主，还没有深度语言语义分析
+- API 抽取目前主要依赖 endpoint / path pattern，而不是完整 OpenAPI 语义解释
+- mission artifacts 主要覆盖通用字段和常见列表字段，尚未对每个 mission 产物做强 schema 适配
+- PR metadata 已可参与候选沉淀，但“PR merge 自动触发”目前仍以手动命令方式实现
+
+因此，当前结论应理解为：
+
+- “自动从 code / PRD / 其他文档收集 knowbase 候选”已经有实现
+- 但后续仍可继续增强 adapter 深度和不同源的专用抽取质量
+
+### 4.3 仓库级执行入口
+
+为避免 `knowledge-collector`、`knowledge-promoter`、索引刷新三步在日常使用中分散执行，仓库提供统一入口：
+
+```text
+scripts/run_knowbase_accumulation.py
+```
+
+推荐执行链路：
+
+```text
+sources
+-> knowledge-collector
+-> generated/candidates
+-> knowledge-promoter
+-> normalized/
+-> rebuild_semantic_index
+-> index/
+```
+
+适用场景：
+
+- 一个 mission 完成后沉淀本轮 artifacts 与代码变化
+- PR 合并后吸收代码、文档、PR metadata
+- 定期增量扫描，维护 `semantic-store/` 持续新鲜
+
+对于“PR 已经 merge，需要人工正式晋升”的场景，仓库提供单独入口：
+
+```text
+scripts/run_pr_merge_promotion.py
+```
+
+该入口语义上等同于“手动触发一次 PR merge 正式晋升”：
+
+- 默认读取当前 `HEAD`
+- 若 `HEAD` 是 merge commit，则使用 `HEAD^1..HEAD`
+- 若 `HEAD` 不是 merge commit，则回退到 `HEAD~1..HEAD`
+- 然后执行 `collector -> promoter -> index refresh`
+
+这使得团队即使暂时不接 Git 平台 webhook，也能在 PR merge 后手动触发一次正式知识沉淀。
+
+为降低日常使用成本，仓库还提供了一个更短的命令入口：
+
+```bash
+make knowbase-pr-merge
+```
+
 ## 5. 统一对象模型
 
 所有 card 建议增加统一治理字段：
@@ -439,7 +548,32 @@ PRD Mission、Design Mission、Coding Mission 等不应直接依赖未治理的�
 - candidate id 到 canonical id 的映射
 - same_as / supersedes 关系
 
-## 12. 推荐落地顺序
+### 11.4 `state/review_decisions.template.json`
+
+作为人工审核输入模板，用于回写：
+
+- `approve`
+- `review`
+- `reject`
+
+实际审核文件可基于该模板生成，再通过 `knowledge-promoter --review-decisions` 或仓库级 orchestrator 传入。
+
+## 12. 当前落地状态
+
+当前仓库已具备以下首版能力：
+
+- `knowledge-collector`：增量扫描 code / docs / API / ADR / artifacts / PR metadata
+- `knowledge-promoter`：执行 dedupe / merge / supersede / conflict detection / review queue
+- `rebuild_semantic_index.py`：基于 `normalized/` 重建 `index/`
+- `run_knowbase_accumulation.py`：串联 collector -> promoter -> index refresh
+
+当前仍建议继续增强：
+
+- 将该入口进一步接入 mission 终态或 PR merge 自动触发点
+- 增强人工审核决策 schema 和协作流程
+- 补更细的 card-specific promotion policy
+
+## 13. 推荐落地顺序
 
 建议按以下顺序推进：
 
@@ -450,7 +584,7 @@ PRD Mission、Design Mission、Coding Mission 等不应直接依赖未治理的�
 5. 补齐 dedupe / merge report
 6. 接入定时自动收集
 
-## 13. 最终结论
+## 14. 最终结论
 
 Knowbase 的积累不应被拆成互不相干的两套机制，而应理解为：
 

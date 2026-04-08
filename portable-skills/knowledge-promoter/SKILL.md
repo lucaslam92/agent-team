@@ -60,8 +60,11 @@ semantic-store/normalized/
 Recommended supporting outputs:
 
 - `generated/merge-reports/`
+- `generated/review-queue/`
 - `state/promotion_state.json`
 - `state/dedupe_index.json`
+- `index/nodes.json`
+- `index/edges.json`
 
 ## Workflow
 
@@ -117,6 +120,39 @@ To apply human review decisions, pass a structured decision file:
 python scripts/promote_knowledge.py \
   --knowledge-root <company_knowbase_root> \
   --review-decisions <review_decisions.json>
+```
+
+After promotion, refresh the semantic graph index so downstream retrieval reads approved knowledge:
+
+```bash
+python scripts/rebuild_semantic_index.py \
+  --knowledge-root <company_knowbase_root>
+```
+
+To run the full repository-level chain in one pass:
+
+```bash
+python ../../scripts/run_knowbase_accumulation.py \
+  --workspace-root <workspace_root> \
+  --knowledge-root <company_knowbase_root> \
+  --source <workspace_root>/docs \
+  --source <workspace_root>/artifacts
+```
+
+To treat a merged PR as a formal promotion event, use the dedicated manual trigger:
+
+```bash
+python ../../scripts/run_pr_merge_promotion.py \
+  --workspace-root <workspace_root> \
+  --knowledge-root <company_knowbase_root>
+```
+
+This command is the preferred manual equivalent of a Git PR merge trigger.
+
+For day-to-day usage inside this repository, the shorter wrapper is:
+
+```bash
+make knowbase-pr-merge
 ```
 
 ## Guardrails

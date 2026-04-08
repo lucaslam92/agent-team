@@ -79,6 +79,74 @@ DOMAIN_HINTS = {
 }
 RULE_HINTS = {"must", "should", "required", "forbid", "forbidden", "constraint", "policy"}
 CAPABILITY_HINTS = {"service", "client", "api", "capability", "interface", "module", "provider", "gateway"}
+TECH_STACK_HINTS = {
+    "typescript",
+    "react",
+    "next",
+    "kotlin",
+    "compose",
+    "swift",
+    "swiftui",
+    "graphql",
+    "grpc",
+    "rest",
+    "redis",
+    "postgres",
+    "mysql",
+    "kafka",
+    "tailwind",
+}
+FRONTEND_COMPONENT_HINTS = {
+    "component",
+    "composable",
+    "screen",
+    "page",
+    "hook",
+    "widget",
+    "card",
+    "dialog",
+    "modal",
+    "form",
+    "viewmodel",
+}
+ARCHITECTURE_HINTS = {
+    "architecture",
+    "module",
+    "layer",
+    "handler",
+    "controller",
+    "service",
+    "domain",
+    "repository",
+    "gateway",
+    "adapter",
+    "navigation",
+    "routing",
+    "state",
+    "integration",
+    "cache",
+    "queue",
+    "event",
+}
+CAPACITY_HINTS = {
+    "capacity",
+    "qps",
+    "rps",
+    "latency",
+    "throughput",
+    "availability",
+    "slo",
+    "sla",
+    "timeout",
+    "retry",
+    "concurrency",
+    "bottleneck",
+    "backlog",
+    "p95",
+    "p99",
+    "cpu",
+    "memory",
+}
 HTTP_VERBS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
 MISSION_ARTIFACT_PATTERNS = {
     "mission_result",
@@ -91,6 +159,22 @@ MISSION_ARTIFACT_PATTERNS = {
     "validation_result",
 }
 PR_METADATA_PATTERNS = {"pull_request", "pr_metadata", "pull-request", "pr-"}
+DOC_SUBTYPE_PATTERNS = [
+    ("frontend_component_rules", "frontend_component_rules"),
+    ("frontend-stack", "frontend_stack"),
+    ("frontend_stack", "frontend_stack"),
+    ("capacity_profile", "capacity_profile"),
+    ("backend_architecture", "backend_architecture"),
+    ("web_architecture", "web_architecture"),
+    ("android_architecture", "android_architecture"),
+    ("ios_architecture", "ios_architecture"),
+    ("backend_rules", "backend_rules"),
+    ("web_rules", "web_rules"),
+    ("android_rules", "android_rules"),
+    ("ios_rules", "ios_rules"),
+    ("api_rules", "api_rules"),
+    ("testing_rules", "testing_rules"),
+]
 
 
 def now_iso() -> str:
@@ -177,6 +261,9 @@ def infer_source_type(path: Path) -> str:
 
 def detect_doc_subtype(path: Path) -> str | None:
     lower_path = str(path).lower()
+    for pattern, subtype in DOC_SUBTYPE_PATTERNS:
+        if pattern in lower_path:
+            return subtype
     if "prd" in lower_path:
         return "prd"
     if "design" in lower_path:
@@ -347,6 +434,23 @@ def extract_sentences(text: str, max_items: int = 8) -> list[str]:
     return result
 
 
+def dedupe_strings(items: list[str], max_items: int) -> list[str]:
+    seen = set()
+    result = []
+    for item in items:
+        text = str(item).strip()
+        if not text:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(text)
+        if len(result) >= max_items:
+            break
+    return result
+
+
 def detect_rule_sentences(text: str, max_items: int = 6) -> list[str]:
     result = []
     for sentence in extract_sentences(text, max_items * 2):
@@ -372,8 +476,68 @@ def detect_capability_lines(text: str, max_items: int = 6) -> list[str]:
     return result
 
 
+def detect_stack_lines(text: str, max_items: int = 8) -> list[str]:
+    result = []
+    for line in text.splitlines():
+        cleaned = line.strip().lstrip("-*").strip()
+        lowered = cleaned.lower()
+        if len(cleaned) < 3:
+            continue
+        if any(hint in lowered for hint in TECH_STACK_HINTS) or any(token in lowered for token in ["tech stack", "framework", "library", "runtime"]):
+            result.append(cleaned)
+    return dedupe_strings(result, max_items)
+
+
+def detect_component_lines(text: str, max_items: int = 8) -> list[str]:
+    result = []
+    for line in text.splitlines():
+        cleaned = line.strip().lstrip("-*").strip()
+        lowered = cleaned.lower()
+        if len(cleaned) < 3:
+            continue
+        if any(hint in lowered for hint in FRONTEND_COMPONENT_HINTS):
+            result.append(cleaned)
+    return dedupe_strings(result, max_items)
+
+
+def detect_architecture_lines(text: str, max_items: int = 8) -> list[str]:
+    result = []
+    for line in text.splitlines():
+        cleaned = line.strip().lstrip("-*").strip()
+        lowered = cleaned.lower()
+        if len(cleaned) < 6:
+            continue
+        if any(hint in lowered for hint in ARCHITECTURE_HINTS):
+            result.append(cleaned)
+    return dedupe_strings(result, max_items)
+
+
+def detect_capacity_lines(text: str, max_items: int = 8) -> list[str]:
+    result = []
+    for line in text.splitlines():
+        cleaned = line.strip().lstrip("-*").strip()
+        lowered = cleaned.lower()
+        if len(cleaned) < 4:
+            continue
+        if any(hint in lowered for hint in CAPACITY_HINTS) or re.search(r"\b\d+\s*(qps|rps|ms|s|%)\b", lowered):
+            result.append(cleaned)
+    return dedupe_strings(result, max_items)
+
+
 def classify_doc_section(title: str, content: str, doc_subtype: str | None) -> str:
     lowered = f"{title} {content[:200]}".lower()
+    if doc_subtype and "capacity" in doc_subtype:
+        return "capacity"
+    if any(token in lowered for token in CAPACITY_HINTS):
+        return "capacity"
+    if doc_subtype and "architecture" in doc_subtype:
+        return "concept"
+    if doc_subtype and doc_subtype in {"frontend_component_rules", "web_rules", "android_rules", "ios_rules", "backend_rules", "api_rules", "testing_rules"}:
+        return "rule"
+    if any(token in lowered for token in FRONTEND_COMPONENT_HINTS):
+        return "ui_component"
+    if any(token in lowered for token in ARCHITECTURE_HINTS):
+        return "concept"
     if doc_subtype in {"prd", "design"} and any(token in lowered for token in ["feature", "flow", "story", "scenario", "journey"]):
         return "feature"
     if doc_subtype == "adr" and any(token in lowered for token in ["decision", "constraint", "policy"]):
@@ -484,6 +648,66 @@ def build_doc_signal(path: Path, workspace_root: Path, file_hash: str, preview_l
             concept_id = f"concept:{token}"
             edges.append(make_edge(root_id, "related_to", concept_id))
 
+    for index, line in enumerate(detect_stack_lines(preview), start=1):
+        stack_id = stable_id("stack", f"{rel_path}:stack:{index}:{line[:120]}")
+        nodes.append(
+            make_node(
+                stack_id,
+                "concept",
+                line[:120],
+                line[:400],
+                path,
+                {**base_metadata, "stack_index": index, "semantic_hint": "tech_stack"},
+            )
+        )
+        edges.append(make_edge(root_id, "implements", stack_id))
+        node_ids.append(stack_id)
+
+    for index, line in enumerate(detect_component_lines(preview), start=1):
+        component_id = stable_id("component", f"{rel_path}:component:{index}:{line[:120]}")
+        nodes.append(
+            make_node(
+                component_id,
+                "ui_component",
+                line[:120],
+                line[:400],
+                path,
+                {**base_metadata, "component_index": index, "semantic_hint": "frontend_component"},
+            )
+        )
+        edges.append(make_edge(root_id, "related_to", component_id))
+        node_ids.append(component_id)
+
+    for index, line in enumerate(detect_architecture_lines(preview), start=1):
+        architecture_id = stable_id("architecture", f"{rel_path}:architecture:{index}:{line[:120]}")
+        nodes.append(
+            make_node(
+                architecture_id,
+                "concept",
+                line[:120],
+                line[:400],
+                path,
+                {**base_metadata, "architecture_index": index, "semantic_hint": "architecture"},
+            )
+        )
+        edges.append(make_edge(root_id, "related_to", architecture_id))
+        node_ids.append(architecture_id)
+
+    for index, line in enumerate(detect_capacity_lines(preview), start=1):
+        capacity_id = stable_id("capacity", f"{rel_path}:capacity:{index}:{line[:120]}")
+        nodes.append(
+            make_node(
+                capacity_id,
+                "capacity",
+                line[:120],
+                line[:400],
+                path,
+                {**base_metadata, "capacity_index": index, "semantic_hint": "capacity"},
+            )
+        )
+        edges.append(make_edge(root_id, "related_to", capacity_id))
+        node_ids.append(capacity_id)
+
     return {"nodes": nodes, "edges": edges}, node_ids
 
 
@@ -543,6 +767,7 @@ def build_code_signal(path: Path, workspace_root: Path, file_hash: str, preview_
 
     for module_name in extract_imports(preview):
         module_id = stable_id("module", module_name.lower())
+        lowered_module = module_name.lower()
         nodes.append(
             make_node(
                 module_id,
@@ -550,7 +775,11 @@ def build_code_signal(path: Path, workspace_root: Path, file_hash: str, preview_
                 module_name,
                 module_name,
                 path,
-                {**base_metadata, "module_name": module_name},
+                {
+                    **base_metadata,
+                    "module_name": module_name,
+                    "semantic_hint": "tech_stack" if any(hint in lowered_module for hint in TECH_STACK_HINTS) else "module",
+                },
             )
         )
         edges.append(make_edge(file_id, "depends_on", module_id))
@@ -558,7 +787,10 @@ def build_code_signal(path: Path, workspace_root: Path, file_hash: str, preview_
 
     for symbol_name, symbol_kind in extract_code_symbols(preview):
         lowered = symbol_name.lower()
-        node_type = "service" if any(hint in lowered for hint in CAPABILITY_HINTS) else "code"
+        is_ui_component = path.suffix.lower() in {".tsx", ".jsx", ".kt", ".swift"} and (
+            symbol_name[:1].isupper() or any(hint in lowered for hint in FRONTEND_COMPONENT_HINTS)
+        )
+        node_type = "ui_component" if is_ui_component else ("service" if any(hint in lowered for hint in CAPABILITY_HINTS) else "code")
         symbol_id = stable_id("symbol", f"{rel_path}:{symbol_name}")
         nodes.append(
             make_node(
@@ -678,6 +910,21 @@ def build_mission_signal(path: Path, workspace_root: Path, file_hash: str, previ
         )
         edges.append(make_edge(root_id, "related_to", summary_id))
         node_ids.append(summary_id)
+
+    for index, line in enumerate(detect_capacity_lines(preview), start=1):
+        capacity_id = stable_id("artifact-capacity", f"{rel_path}:capacity:{index}:{line[:120]}")
+        nodes.append(
+            make_node(
+                capacity_id,
+                "capacity",
+                line[:120],
+                line[:400],
+                path,
+                {**base_metadata, "artifact_role": "capacity", "capacity_index": index},
+            )
+        )
+        edges.append(make_edge(root_id, "related_to", capacity_id))
+        node_ids.append(capacity_id)
 
     list_fields = {
         "effective_rules": "rule",
@@ -908,9 +1155,39 @@ def infer_confidence(card_type: str, source_refs: list[dict], evidence_count: in
     return round(min(base, 0.95), 2)
 
 
-def infer_promotion_policy(card_type: str) -> str:
+def infer_promotion_policy(
+    card_type: str,
+    source_types: set[str] | None = None,
+    semantic_hints: set[str] | None = None,
+    doc_subtypes: set[str] | None = None,
+) -> str:
+    source_types = {str(item) for item in (source_types or set()) if item}
+    semantic_hints = {str(item) for item in (semantic_hints or set()) if item}
+    doc_subtypes = {str(item) for item in (doc_subtypes or set()) if item}
+
     if card_type == "capability":
-        return "auto_promote"
+        strong_sources = {"code", "api", "mission_artifact", "pr_metadata"}
+        architecture_like = bool(semantic_hints & {"architecture", "tech_stack", "frontend_component"})
+        doc_only = bool(source_types) and not (source_types & strong_sources)
+        architecture_docs = any(
+            subtype in {
+                "backend_architecture",
+                "web_architecture",
+                "android_architecture",
+                "ios_architecture",
+                "frontend_stack",
+                "frontend_component_rules",
+                "backend_rules",
+                "web_rules",
+                "android_rules",
+                "ios_rules",
+                "api_rules",
+                "testing_rules",
+            }
+            for subtype in doc_subtypes
+        )
+        if not doc_only and not architecture_like and not architecture_docs and source_types & strong_sources:
+            return "auto_promote"
     return "manual_review"
 
 
@@ -918,19 +1195,22 @@ def enrich_cards(cards: list[dict], card_type: str, subgraph_nodes: dict, change
     source_by_node = {}
     for node_id, node in subgraph_nodes.items():
         metadata = node.get("metadata") if isinstance(node.get("metadata"), dict) else {}
-        doc_subtype = metadata.get("doc_subtype")
         source_by_node[node_id] = {
             "path": str(node.get("source", "")),
             "relative_path": metadata.get("relative_path") or str(node.get("source", "")),
-            "source_type": doc_subtype or metadata.get("source_type") or str(node.get("type", "")),
+            "source_type": metadata.get("source_type") or str(node.get("type", "")),
+            "doc_subtype": metadata.get("doc_subtype"),
             "content_hash": metadata.get("content_hash"),
+            "semantic_hint": metadata.get("semantic_hint"),
+            "node_type": str(node.get("type", "")),
         }
 
     fallback_refs = [
         {
             "path": item.get("path"),
             "relative_path": item.get("relative_path"),
-            "source_type": item.get("doc_subtype") or item.get("source_type"),
+            "source_type": item.get("source_type"),
+            "doc_subtype": item.get("doc_subtype"),
             "content_hash": item.get("content_hash"),
         }
         for item in changed_sources[:5]
@@ -941,23 +1221,42 @@ def enrich_cards(cards: list[dict], card_type: str, subgraph_nodes: dict, change
         card_copy = dict(card)
         evidence = card_copy.get("evidence", [])
         source_refs = []
+        semantic_hints = set()
+        doc_subtypes = set()
         for evidence_item in evidence:
             if not isinstance(evidence_item, dict):
                 continue
             node_id = str(evidence_item.get("node_id", "")).strip()
             if node_id and node_id in source_by_node:
-                source_refs.append(source_by_node[node_id])
+                ref = source_by_node[node_id]
+                source_refs.append(
+                    {
+                        "path": ref.get("path"),
+                        "relative_path": ref.get("relative_path"),
+                        "source_type": ref.get("source_type"),
+                        "doc_subtype": ref.get("doc_subtype"),
+                        "content_hash": ref.get("content_hash"),
+                    }
+                )
+                if ref.get("semantic_hint"):
+                    semantic_hints.add(str(ref["semantic_hint"]))
+                if ref.get("doc_subtype"):
+                    doc_subtypes.add(str(ref["doc_subtype"]))
         if not source_refs:
             source_refs = list(fallback_refs)
         source_refs = unique_dicts(source_refs, ("path", "relative_path", "source_type", "content_hash"))
+        source_types = {str(item.get("source_type")) for item in source_refs if item.get("source_type")}
+        doc_subtypes |= {str(item.get("doc_subtype")) for item in source_refs if item.get("doc_subtype")}
 
         card_copy["card_type"] = card_type
         card_copy["status"] = "candidate"
         card_copy["confidence"] = infer_confidence(card_type, source_refs, len(evidence))
         card_copy["source_refs"] = source_refs
+        if semantic_hints:
+            card_copy["semantic_hints"] = sorted(semantic_hints)
         card_copy["derived_from"] = [f"knowledge-collector:{run_id}"]
         card_copy["last_verified_at"] = None
-        card_copy["promotion_policy"] = infer_promotion_policy(card_type)
+        card_copy["promotion_policy"] = infer_promotion_policy(card_type, source_types, semantic_hints, doc_subtypes)
         card_copy["collector_run_id"] = run_id
         card_copy["collected_at"] = collected_at
         enriched.append(card_copy)
@@ -1089,7 +1388,7 @@ def main():
 
     if not changed_sources:
         report["status"] = "no_changes"
-        write_json(candidate_report_path, {"metadata": report, "feature_cards": [], "rule_cards": [], "capability_cards": []})
+        write_json(candidate_report_path, {"metadata": report, "feature_cards": [], "rule_cards": [], "capability_cards": [], "capacity_cards": []})
         write_json(collector_report_path, report)
         return
 
@@ -1173,16 +1472,18 @@ def main():
     )
 
     subgraph = load_json(subgraph_path, {})
-    raw_cards = load_json(raw_cards_path, {"feature_cards": [], "rule_cards": [], "capability_cards": []})
+    raw_cards = load_json(raw_cards_path, {"feature_cards": [], "rule_cards": [], "capability_cards": [], "capacity_cards": []})
     subgraph_nodes = load_subgraph_node_map(subgraph)
 
     feature_cards = enrich_cards(raw_cards.get("feature_cards", []), "feature", subgraph_nodes, changed_sources, run_id, collected_at)
     rule_cards = enrich_cards(raw_cards.get("rule_cards", []), "rule", subgraph_nodes, changed_sources, run_id, collected_at)
     capability_cards = enrich_cards(raw_cards.get("capability_cards", []), "capability", subgraph_nodes, changed_sources, run_id, collected_at)
+    capacity_cards = enrich_cards(raw_cards.get("capacity_cards", []), "capacity", subgraph_nodes, changed_sources, run_id, collected_at)
 
     written_feature_cards = persist_cards(feature_cards, candidates_root, "feature")
     written_rule_cards = persist_cards(rule_cards, candidates_root, "rule")
     written_capability_cards = persist_cards(capability_cards, candidates_root, "capability")
+    written_capacity_cards = persist_cards(capacity_cards, candidates_root, "capacity")
 
     candidate_bundle = {
         "metadata": {
@@ -1197,6 +1498,7 @@ def main():
         "feature_cards": feature_cards,
         "rule_cards": rule_cards,
         "capability_cards": capability_cards,
+        "capacity_cards": capacity_cards,
     }
     write_json(candidate_report_path, candidate_bundle)
 
@@ -1222,7 +1524,8 @@ def main():
             "feature_count": len(feature_cards),
             "rule_count": len(rule_cards),
             "capability_count": len(capability_cards),
-            "written_candidate_files": written_feature_cards + written_rule_cards + written_capability_cards,
+            "capacity_count": len(capacity_cards),
+            "written_candidate_files": written_feature_cards + written_rule_cards + written_capability_cards + written_capacity_cards,
             "registry_path": str(registry_path),
         }
     )

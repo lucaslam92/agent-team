@@ -250,23 +250,36 @@ def source_types(card: dict) -> set[str]:
     return values
 
 
+def source_labels(card: dict) -> set[str]:
+    values = set()
+    for item in card.get("source_refs", []):
+        if not isinstance(item, dict):
+            continue
+        for field in ("source_type", "doc_subtype"):
+            value = item.get(field)
+            if value:
+                values.add(str(value))
+    return values
+
+
 def should_promote(card: dict, auto_threshold: float) -> tuple[bool, str]:
     card_type = card.get("card_type")
     confidence = float(card.get("confidence") or 0)
     evidence_count = len(card.get("evidence", []))
     refs = source_types(card)
+    labels = source_labels(card)
     policy = card.get("promotion_policy", "manual_review")
-
-    if card_type == "capability":
-        if confidence >= max(0.70, auto_threshold - 0.10) and evidence_count >= 1:
-            return True, "capability_auto_promote"
-        return False, "capability_evidence_too_weak"
 
     if policy == "manual_review":
         return False, "manual_review_required"
 
+    if card_type == "capability":
+        if confidence >= max(0.70, auto_threshold - 0.10) and evidence_count >= 1 and refs & {"code", "api", "mission_artifact", "pr_metadata"}:
+            return True, "capability_auto_promote"
+        return False, "capability_needs_implementation_evidence"
+
     if card_type == "feature":
-        if confidence >= auto_threshold and evidence_count >= 2 and {"doc", "prd", "design"} & refs and {"code", "api"} & refs:
+        if confidence >= auto_threshold and evidence_count >= 2 and {"doc", "prd", "design"} & labels and {"code", "api"} & refs:
             return True, "feature_auto_promote"
         return False, "feature_needs_more_evidence"
 
@@ -282,6 +295,9 @@ def decide_review_state(card: dict, auto_threshold: float, review_threshold: flo
     promote, reason = should_promote(card, auto_threshold)
     if promote:
         return "approve", reason
+
+    if reason == "manual_review_required":
+        return "review", reason
 
     confidence = float(card.get("confidence") or 0)
     evidence_count = len(card.get("evidence", []))
