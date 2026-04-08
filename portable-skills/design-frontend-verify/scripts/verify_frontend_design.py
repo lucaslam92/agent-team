@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import shlex
 from pathlib import Path
 import sys
 
@@ -53,14 +54,259 @@ def gate_result(gate_id: str, criteria_results: list[dict[str, object]], blockin
     }
 
 
-def analyzer_result(analyzer_id: str, failure_type: str, reasons: list[str], repair_actions: list[str], resume_from: str) -> dict[str, object]:
+def repair_plan_step(
+    step_id: str,
+    summary: str,
+    skill: str,
+    target_artifacts: list[str],
+    rationale: str,
+    auto_fixable: bool,
+    command: str,
+) -> dict[str, object]:
+    return {
+        "step_id": step_id,
+        "summary": summary,
+        "skill": skill,
+        "target_artifacts": target_artifacts,
+        "rationale": rationale,
+        "auto_fixable": auto_fixable,
+        "command": command,
+    }
+
+
+def analyzer_result(
+    analyzer_id: str,
+    failure_type: str,
+    reasons: list[str],
+    repair_actions: list[str],
+    resume_from: str,
+    suggested_skill: str,
+    suggested_command: str,
+    target_artifacts: list[str],
+    auto_fixable: bool,
+    repair_plan: list[dict[str, object]],
+) -> dict[str, object]:
     return {
         "analyzer_id": analyzer_id,
         "failure_type": failure_type,
         "reasons": reasons,
         "repair_actions": repair_actions,
         "resume_from": resume_from,
+        "suggested_skill": suggested_skill,
+        "suggested_command": suggested_command,
+        "target_artifacts": target_artifacts,
+        "auto_fixable": auto_fixable,
+        "repair_plan": repair_plan,
     }
+
+
+def unique_strings(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in items:
+        if item and item not in seen:
+            seen.add(item)
+            ordered.append(item)
+    return ordered
+
+
+def blocking_risks(risk_register: dict[str, object]) -> list[dict[str, object]]:
+    return [risk for risk in risk_register.get("risks", []) if risk.get("blocking")]
+
+
+def shell(parts: list[str | Path]) -> str:
+    return " ".join(shlex.quote(str(part)) for part in parts)
+
+
+def frontend_command_context(frontend_scope_path: str) -> dict[str, str]:
+    design_dir = Path(frontend_scope_path).resolve().parent
+    if design_dir.name == "frontend" and design_dir.parent.name == "design" and design_dir.parent.parent.name == "artifacts":
+        workspace_root = design_dir.parents[2]
+    else:
+        workspace_root = Path.cwd()
+    return {
+        "workspace_root": str(workspace_root),
+        "final_prd": str(workspace_root / "artifacts" / "prd" / "final_prd.json"),
+        "knowledge_root": str(workspace_root / "knowledge"),
+        "repo_overlay_root": str(workspace_root / "knowledge"),
+        "repo_context_snapshot": str(design_dir / "repo_context_snapshot.json"),
+        "frontend_scope": str(design_dir / "frontend_scope.json"),
+        "knowbase_context": str(design_dir / "knowbase_context.json"),
+        "contract_view": str(design_dir / "frontend_contract_view.json"),
+        "api_contract": str(design_dir.parent / "backend" / "api_contract.yaml"),
+        "page_map": str(design_dir / "page_map.json"),
+        "navigation_map": str(design_dir / "navigation_map.json"),
+        "ui_structure": str(design_dir / "ui_structure.json"),
+        "state_model": str(design_dir / "state_model.json"),
+        "component_spec": str(design_dir / "component_spec.json"),
+        "interaction_spec": str(design_dir / "interaction_spec.json"),
+        "data_binding_plan": str(design_dir / "data_binding_plan.json"),
+        "quality_plan": str(design_dir / "quality_plan.json"),
+        "risk_register": str(design_dir / "risk_register.json"),
+        "frontend_design_doc": str(design_dir / "frontend_design.md"),
+        "frontend_task_graph": str(design_dir / "frontend_task_graph.json"),
+        "context_snapshot": str(design_dir / "design_context_snapshot.json"),
+    }
+
+
+def frontend_skill_command(skill: str, ctx: dict[str, str]) -> str:
+    command_map = {
+        "design.frontend.read_knowbase_context": [
+            "python",
+            "skills/design-frontend-read-knowbase-context/scripts/read_knowbase_context.py",
+            "--final-prd",
+            ctx["final_prd"],
+            "--knowledge-root",
+            ctx["knowledge_root"],
+            "--platform",
+            "web",
+            "--repo-overlay-root",
+            ctx["repo_overlay_root"],
+            "--output",
+            ctx["knowbase_context"],
+        ],
+        "design.frontend.scope_alignment": [
+            "python",
+            "skills/design-frontend-scope-alignment/scripts/generate_scope.py",
+            "--final-prd",
+            ctx["final_prd"],
+            "--repo-context-snapshot",
+            ctx["repo_context_snapshot"],
+            "--knowbase-context",
+            ctx["knowbase_context"],
+            "--output",
+            ctx["frontend_scope"],
+        ],
+        "design.frontend.contract_alignment": [
+            "python",
+            "skills/design-frontend-contract-alignment/scripts/generate_frontend_contract_view.py",
+            "--final-prd",
+            ctx["final_prd"],
+            "--repo-context-snapshot",
+            ctx["repo_context_snapshot"],
+            "--frontend-scope",
+            ctx["frontend_scope"],
+            "--api-contract",
+            ctx["api_contract"],
+            "--output",
+            ctx["contract_view"],
+        ],
+        "design.frontend.information_architecture": [
+            "python",
+            "skills/design-frontend-information-architecture/scripts/generate_information_architecture.py",
+            "--final-prd",
+            ctx["final_prd"],
+            "--repo-context-snapshot",
+            ctx["repo_context_snapshot"],
+            "--frontend-scope",
+            ctx["frontend_scope"],
+            "--contract-view",
+            ctx["contract_view"],
+            "--page-map-output",
+            ctx["page_map"],
+            "--navigation-map-output",
+            ctx["navigation_map"],
+            "--ui-structure-output",
+            ctx["ui_structure"],
+        ],
+        "design.frontend.state_model": [
+            "python",
+            "skills/design-frontend-state-model/scripts/generate_state_model.py",
+            "--final-prd",
+            ctx["final_prd"],
+            "--contract-view",
+            ctx["contract_view"],
+            "--page-map",
+            ctx["page_map"],
+            "--output",
+            ctx["state_model"],
+        ],
+        "design.frontend.component_spec": [
+            "python",
+            "skills/design-frontend-component-spec/scripts/generate_component_spec.py",
+            "--final-prd",
+            ctx["final_prd"],
+            "--ui-structure",
+            ctx["ui_structure"],
+            "--knowbase-context",
+            ctx["knowbase_context"],
+            "--output",
+            ctx["component_spec"],
+        ],
+        "design.frontend.interaction_design": [
+            "python",
+            "skills/design-frontend-interaction-design/scripts/generate_interaction_spec.py",
+            "--final-prd",
+            ctx["final_prd"],
+            "--contract-view",
+            ctx["contract_view"],
+            "--output",
+            ctx["interaction_spec"],
+        ],
+        "design.frontend.data_binding": [
+            "python",
+            "skills/design-frontend-data-binding/scripts/generate_data_binding_plan.py",
+            "--final-prd",
+            ctx["final_prd"],
+            "--contract-view",
+            ctx["contract_view"],
+            "--state-model",
+            ctx["state_model"],
+            "--output",
+            ctx["data_binding_plan"],
+        ],
+        "design.frontend.quality_plan": [
+            "python",
+            "skills/design-frontend-quality-plan/scripts/generate_quality_plan.py",
+            "--final-prd",
+            ctx["final_prd"],
+            "--knowbase-context",
+            ctx["knowbase_context"],
+            "--quality-output",
+            ctx["quality_plan"],
+            "--risk-output",
+            ctx["risk_register"],
+        ],
+        "design.frontend.compile_doc": [
+            "python",
+            "skills/design-frontend-compile-doc/scripts/compile_frontend_design.py",
+            "--final-prd",
+            ctx["final_prd"],
+            "--repo-context-snapshot",
+            ctx["repo_context_snapshot"],
+            "--knowbase-context",
+            ctx["knowbase_context"],
+            "--frontend-scope",
+            ctx["frontend_scope"],
+            "--contract-view",
+            ctx["contract_view"],
+            "--page-map",
+            ctx["page_map"],
+            "--navigation-map",
+            ctx["navigation_map"],
+            "--ui-structure",
+            ctx["ui_structure"],
+            "--state-model",
+            ctx["state_model"],
+            "--component-spec",
+            ctx["component_spec"],
+            "--interaction-spec",
+            ctx["interaction_spec"],
+            "--data-binding-plan",
+            ctx["data_binding_plan"],
+            "--quality-plan",
+            ctx["quality_plan"],
+            "--risk-register",
+            ctx["risk_register"],
+            "--doc-output",
+            ctx["frontend_design_doc"],
+            "--task-graph-output",
+            ctx["frontend_task_graph"],
+            "--context-snapshot-output",
+            ctx["context_snapshot"],
+        ],
+    }
+    return shell(command_map[skill])
 
 
 def task_index(tasks: list[dict[str, object]]) -> dict[str, dict[str, object]]:
@@ -236,7 +482,7 @@ def verifier_lookup(results: list[dict[str, object]]) -> dict[str, dict[str, obj
     return {str(result["verifier_id"]): result for result in results}
 
 
-def gate_from_verifiers(lookup: dict[str, dict[str, object]], gate_id: str) -> dict[str, object]:
+def gate_from_verifiers(lookup: dict[str, dict[str, object]], gate_id: str, risk_register: dict[str, object]) -> dict[str, object]:
     if gate_id == "scope_gate":
         criteria = [
             criterion_result("frontend_scope_declared", lookup["frontend_prd_coverage_verifier"]["status"] != "failed", ["frontend_prd_coverage_verifier"]),
@@ -254,33 +500,224 @@ def gate_from_verifiers(lookup: dict[str, dict[str, object]], gate_id: str) -> d
         ]
         blocking = [issue["summary"] for verifier_id in ["frontend_contract_view_schema_verifier", "frontend_contract_fallback_verifier", "frontend_navigation_integrity_verifier", "frontend_state_model_verifier", "frontend_ac_mapping_verifier"] for issue in lookup[verifier_id]["findings"] if issue["severity"] == "high"]
         return gate_result("ux_contract_gate", criteria, blocking, "frontend_contract_analyzer")
+    blocking_risk_findings = [str(risk.get("summary", "Blocking risk")) for risk in blocking_risks(risk_register)]
     criteria = [
         criterion_result("operability_ready", lookup["frontend_operability_verifier"]["status"] != "failed", ["frontend_operability_verifier"]),
         criterion_result("task_graph_is_valid_dag", lookup["frontend_task_graph_schema_verifier"]["status"] == "passed" and lookup["frontend_task_graph_dag_verifier"]["status"] == "passed", ["frontend_task_graph_schema_verifier", "frontend_task_graph_dag_verifier"]),
         criterion_result("task_graph_covers_design", lookup["frontend_task_graph_coverage_verifier"]["status"] != "failed" and lookup["frontend_task_graph_granularity_verifier"]["status"] != "failed", ["frontend_task_graph_coverage_verifier", "frontend_task_graph_granularity_verifier"]),
         criterion_result("component_and_quality_design_ready", lookup["frontend_component_reuse_verifier"]["status"] != "failed", ["frontend_component_reuse_verifier"]),
     ]
-    blocking = [issue["summary"] for verifier_id in ["frontend_operability_verifier", "frontend_task_graph_schema_verifier", "frontend_task_graph_dag_verifier", "frontend_task_graph_coverage_verifier", "frontend_task_graph_granularity_verifier"] for issue in lookup[verifier_id]["findings"] if issue["severity"] == "high"]
+    criteria.append(criterion_result("no_blocking_risks", not blocking_risk_findings, ["risk_register"]))
+    blocking = [issue["summary"] for verifier_id in ["frontend_operability_verifier", "frontend_task_graph_schema_verifier", "frontend_task_graph_dag_verifier", "frontend_task_graph_coverage_verifier", "frontend_task_graph_granularity_verifier"] for issue in lookup[verifier_id]["findings"] if issue["severity"] == "high"] + blocking_risk_findings
     return gate_result("implementation_ready_gate", criteria, blocking, "frontend_ready_gate_analyzer")
 
 
-def analyzers_from_gates(gates: list[dict[str, object]]) -> list[dict[str, object]]:
+def frontend_repair_blueprint(gate_id: str, failed_criteria: list[dict[str, object]], ctx: dict[str, str]) -> dict[str, object]:
+    failed = {str(item["criterion"]) for item in failed_criteria}
+
+    if gate_id == "scope_gate":
+        steps: list[dict[str, object]] = []
+        if "knowbase_context_usable" in failed:
+            steps.append(
+                repair_plan_step(
+                    "refresh_knowbase_context",
+                    "Rebuild knowbase_context.json from the resolved frontend knowledge sources.",
+                    "design.frontend.read_knowbase_context",
+                    ["knowbase_context.json"],
+                    "Frontend design skills should consume a single validated knowbase context instead of repeatedly scanning raw knowledge documents.",
+                    True,
+                    frontend_skill_command("design.frontend.read_knowbase_context", ctx),
+                )
+            )
+        if "frontend_scope_declared" in failed or "stack_context_present" in failed:
+            steps.append(
+                repair_plan_step(
+                    "realign_frontend_scope",
+                    "Regenerate frontend_scope.json with UI ownership, shared contracts, and stack-aware frontend boundaries.",
+                    "design.frontend.scope_alignment",
+                    ["frontend_scope.json"],
+                    "Scope alignment is the earliest frontend artifact that pins down ownership and stack constraints for the feature.",
+                    True,
+                    frontend_skill_command("design.frontend.scope_alignment", ctx),
+                )
+            )
+        if not steps:
+            steps.append(
+                repair_plan_step(
+                    "rerun_frontend_scope_alignment",
+                    "Rerun frontend scope alignment to refresh the scope gate inputs.",
+                    "design.frontend.scope_alignment",
+                    ["frontend_scope.json"],
+                    "The scope gate failed without a more specific mapping.",
+                    True,
+                    frontend_skill_command("design.frontend.scope_alignment", ctx),
+                )
+            )
+        return {
+            "resume_from": steps[0]["skill"],
+            "suggested_skill": steps[0]["skill"],
+            "target_artifacts": unique_strings([artifact for step in steps for artifact in step["target_artifacts"]]),
+            "auto_fixable": all(bool(step["auto_fixable"]) for step in steps),
+            "repair_plan": steps,
+        }
+
+    if gate_id == "ux_contract_gate":
+        steps = []
+        if {"contract_view_valid", "fallback_or_contract_present", "acceptance_mapping_present"} & failed:
+            steps.append(
+                repair_plan_step(
+                    "repair_frontend_contract_view",
+                    "Regenerate frontend_contract_view.json with consumed APIs, fallback contracts, and acceptance mapping.",
+                    "design.frontend.contract_alignment",
+                    ["frontend_contract_view.json"],
+                    "Frontend contract alignment is the canonical step for translating backend contract or PRD fallback behavior into frontend-consumable artifacts.",
+                    True,
+                    frontend_skill_command("design.frontend.contract_alignment", ctx),
+                )
+            )
+        if "navigation_and_state_valid" in failed:
+            steps.extend(
+                [
+                    repair_plan_step(
+                        "repair_information_architecture",
+                        "Refresh page_map.json, navigation_map.json, and ui_structure.json for complete page and route coverage.",
+                        "design.frontend.information_architecture",
+                        ["page_map.json", "navigation_map.json", "ui_structure.json"],
+                        "Navigation and page structure issues should be repaired in the dedicated information architecture step.",
+                        True,
+                        frontend_skill_command("design.frontend.information_architecture", ctx),
+                    ),
+                    repair_plan_step(
+                        "repair_state_model",
+                        "Regenerate state_model.json with explicit state transitions and view state coverage.",
+                        "design.frontend.state_model",
+                        ["state_model.json"],
+                        "State integrity is a separate frontend concern and should be repaired in the state-model step.",
+                        True,
+                        frontend_skill_command("design.frontend.state_model", ctx),
+                    ),
+                ]
+            )
+        if not steps:
+            steps.append(
+                repair_plan_step(
+                    "rerun_contract_alignment",
+                    "Rerun frontend contract alignment to refresh the UX/contract gate inputs.",
+                    "design.frontend.contract_alignment",
+                    ["frontend_contract_view.json"],
+                    "The UX/contract gate failed without a more specific mapping.",
+                    True,
+                    frontend_skill_command("design.frontend.contract_alignment", ctx),
+                )
+            )
+        return {
+            "resume_from": steps[0]["skill"],
+            "suggested_skill": steps[0]["skill"],
+            "target_artifacts": unique_strings([artifact for step in steps for artifact in step["target_artifacts"]]),
+            "auto_fixable": all(bool(step["auto_fixable"]) for step in steps),
+            "repair_plan": steps,
+        }
+
+    steps = []
+    if "operability_ready" in failed or "no_blocking_risks" in failed:
+        steps.append(
+            repair_plan_step(
+                "repair_frontend_quality",
+                "Refresh quality_plan.json and risk_register.json with accessibility, performance, rollout, and explicit mitigation details.",
+                "design.frontend.quality_plan",
+                ["quality_plan.json", "risk_register.json"],
+                "Implementation readiness cannot pass while quality plans are incomplete or blocking risks remain unresolved.",
+                False if "no_blocking_risks" in failed else True,
+                frontend_skill_command("design.frontend.quality_plan", ctx),
+            )
+        )
+    if "operability_ready" in failed:
+        steps.extend(
+            [
+                repair_plan_step(
+                    "repair_interaction_spec",
+                    "Refresh interaction_spec.json with validation, feedback, retry, and degraded UX behavior.",
+                    "design.frontend.interaction_design",
+                    ["interaction_spec.json"],
+                    "Frontend operability depends on explicit interaction behavior, not just top-level quality goals.",
+                    True,
+                    frontend_skill_command("design.frontend.interaction_design", ctx),
+                ),
+                repair_plan_step(
+                    "repair_data_binding",
+                    "Refresh data_binding_plan.json so requests, responses, errors, and async refresh behavior map cleanly to UI state.",
+                    "design.frontend.data_binding",
+                    ["data_binding_plan.json"],
+                    "Binding gaps should be repaired in the dedicated data-binding step before recompiling task graph outputs.",
+                    True,
+                    frontend_skill_command("design.frontend.data_binding", ctx),
+                ),
+            ]
+        )
+    if "task_graph_is_valid_dag" in failed or "task_graph_covers_design" in failed:
+        steps.append(
+            repair_plan_step(
+                "recompile_frontend_task_graph",
+                "Regenerate frontend_task_graph.json and frontend_design.md from the latest design assets.",
+                "design.frontend.compile_doc",
+                ["frontend_task_graph.json", "frontend_design.md", "design_context_snapshot.json"],
+                "Task graph and compiled design issues should be repaired in the compile step so Coding Mission consumes a consistent frontend package.",
+                True,
+                frontend_skill_command("design.frontend.compile_doc", ctx),
+            )
+        )
+    if "component_and_quality_design_ready" in failed:
+        steps.append(
+            repair_plan_step(
+                "repair_component_spec",
+                "Refresh component_spec.json to declare reusable components and constraints before coding handoff.",
+                "design.frontend.component_spec",
+                ["component_spec.json"],
+                "Component reuse gaps should be repaired in the dedicated component specification step.",
+                True,
+                frontend_skill_command("design.frontend.component_spec", ctx),
+            )
+        )
+    if not steps:
+        steps.append(
+            repair_plan_step(
+                "rerun_frontend_quality_plan",
+                "Rerun frontend quality planning to refresh implementation-readiness inputs.",
+                "design.frontend.quality_plan",
+                ["quality_plan.json", "risk_register.json"],
+                "The implementation-ready gate failed without a more specific mapping.",
+                True,
+                frontend_skill_command("design.frontend.quality_plan", ctx),
+            )
+        )
+    return {
+        "resume_from": steps[0]["skill"],
+        "suggested_skill": steps[0]["skill"],
+        "target_artifacts": unique_strings([artifact for step in steps for artifact in step["target_artifacts"]]),
+        "auto_fixable": all(bool(step["auto_fixable"]) for step in steps),
+        "repair_plan": steps,
+    }
+
+
+def analyzers_from_gates(gates: list[dict[str, object]], ctx: dict[str, str]) -> list[dict[str, object]]:
     analyzers: list[dict[str, object]] = []
     for gate in gates:
         if gate["status"] == "passed":
             continue
         failed_criteria = [item for item in gate["criteria_results"] if item["status"] == "failed"]
+        blueprint = frontend_repair_blueprint(str(gate["gate_id"]), failed_criteria, ctx)
         analyzers.append(
             analyzer_result(
                 analyzer_id=str(gate["analyzer_ref"]),
                 failure_type=str(gate["gate_id"]),
                 reasons=[item["criterion"] for item in failed_criteria] + list(gate["blocking_issues"]),
-                repair_actions=[f"Repair failed criterion: {item['criterion']}" for item in failed_criteria],
-                resume_from={
-                    "scope_gate": "design.frontend.scope_alignment",
-                    "ux_contract_gate": "design.frontend.contract_alignment",
-                    "implementation_ready_gate": "design.frontend.quality_plan",
-                }[str(gate["gate_id"])],
+                repair_actions=[str(step["summary"]) for step in blueprint["repair_plan"]],
+                resume_from=str(blueprint["resume_from"]),
+                suggested_skill=str(blueprint["suggested_skill"]),
+                suggested_command=str(blueprint["repair_plan"][0]["command"]),
+                target_artifacts=list(blueprint["target_artifacts"]),
+                auto_fixable=bool(blueprint["auto_fixable"]),
+                repair_plan=list(blueprint["repair_plan"]),
             )
         )
     return analyzers
@@ -325,12 +762,13 @@ def main() -> None:
         task_graph=task_graph,
     )
     lookup = verifier_lookup(verifier_results)
+    command_context = frontend_command_context(args.frontend_scope)
     gate_results = [
-        gate_from_verifiers(lookup, "scope_gate"),
-        gate_from_verifiers(lookup, "ux_contract_gate"),
-        gate_from_verifiers(lookup, "implementation_ready_gate"),
+        gate_from_verifiers(lookup, "scope_gate", risk_register),
+        gate_from_verifiers(lookup, "ux_contract_gate", risk_register),
+        gate_from_verifiers(lookup, "implementation_ready_gate", risk_register),
     ]
-    analyzer_results = analyzers_from_gates(gate_results)
+    analyzer_results = analyzers_from_gates(gate_results, command_context)
     open_issues = [issue for result in verifier_results for issue in result["findings"]] + [finding(risk["id"], risk["summary"], risk["severity"]) for risk in risk_register.get("risks", []) if risk.get("blocking")]
     blocking_issue_count = len([issue for issue in open_issues if issue["severity"] == "high"])
     warning_count = len([issue for issue in open_issues if issue["severity"] == "medium"])

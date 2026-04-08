@@ -26,6 +26,7 @@ Do this:
 1. Check scope, contract, domain, knowbase alignment, operability, and task executability.
 2. Summarize gate results and repair actions.
 3. Keep the output aligned with [`design_check_report.schema.json`](/Users/lindonghua/Documents/project/agent/auto-dev-agent/docs/schemas/backend-design/design_check_report.schema.json).
+4. Emit analyzer repair plans with executable command suggestions when a gate fails.
 
 Use the helper script:
 
@@ -41,4 +42,7 @@ python skills/design-backend-verify/scripts/verify_backend_design.py \
   --risk-register artifacts/design/backend/risk_register.json \
   --backend-task-graph artifacts/design/backend/backend_task_graph.json \
   --output artifacts/design/backend/design_check_report.json
+
+python scripts/run_design_repair.py \
+  --report artifacts/design/backend/design_check_report.json
 ```

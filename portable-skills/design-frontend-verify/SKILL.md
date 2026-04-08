@@ -8,6 +8,8 @@ description: >
 
 Generate `design_check_report.json`.
 
+When a gate fails, the report should include analyzer repair plans with executable command suggestions.
+
 Use the script:
 
 ```bash
@@ -26,4 +28,7 @@ python skills/design-frontend-verify/scripts/verify_frontend_design.py \
   --risk-register artifacts/design/frontend/risk_register.json \
   --frontend-task-graph artifacts/design/frontend/frontend_task_graph.json \
   --output artifacts/design/frontend/design_check_report.json
+
+python scripts/run_design_repair.py \
+  --report artifacts/design/frontend/design_check_report.json
 ```

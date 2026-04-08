@@ -210,7 +210,12 @@
         "failure_type",
         "reasons",
         "repair_actions",
-        "resume_from"
+        "resume_from",
+        "suggested_skill",
+        "suggested_command",
+        "target_artifacts",
+        "auto_fixable",
+        "repair_plan"
       ],
       "properties": {
         "analyzer_id": {
@@ -231,7 +236,67 @@
             "type": "string"
           }
         },
+        "suggested_command": {
+          "type": "string"
+        },
         "resume_from": {
+          "type": "string"
+        },
+        "suggested_skill": {
+          "type": "string"
+        },
+        "target_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "auto_fixable": {
+          "type": "boolean"
+        },
+        "repair_plan": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/repairPlanStep"
+          }
+        }
+      }
+    },
+    "repairPlanStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_id",
+        "summary",
+        "skill",
+        "target_artifacts",
+        "rationale",
+        "auto_fixable",
+        "command"
+      ],
+      "properties": {
+        "step_id": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "skill": {
+          "type": "string"
+        },
+        "target_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rationale": {
+          "type": "string"
+        },
+        "auto_fixable": {
+          "type": "boolean"
+        },
+        "command": {
           "type": "string"
         }
       }

@@ -421,6 +421,20 @@ docs/schemas/frontend-design/
   - reasons
   - repair_actions
   - resume_from
+  - suggested_skill
+  - suggested_command
+  - target_artifacts
+  - auto_fixable
+  - repair_plan
+    - step_id
+    - summary
+    - skill
+    - target_artifacts
+    - rationale
+    - auto_fixable
+    - command
+
+`repair_plan.command` 可以直接执行，或交给 [`run_design_repair.py`](/Users/lindonghua/Documents/project/agent/auto-dev-agent/scripts/run_design_repair.py) 做 dry-run / 执行。
 - unresolved_issues
 - recommended_resume_from
 
