@@ -11,7 +11,7 @@ description: >
 
 ## 职责
 
-从 Knowbase 中按需检索与当前需求相关的知识卡（Feature / Rule / Capability / Playbook），
+从 `semantic-store/` 中按需检索与当前需求相关的结构化知识卡（Feature / Rule / Capability / Playbook），
 通过图谱扩展关联节点，再经过 Resolver 过滤聚合，最终压缩为结构化 context_summary.json。
 
 优先路线应为标准 Claude skill 链路：
@@ -48,7 +48,7 @@ graph-builder
 
 - 已有 `intake_result.json`（status=proceed）
 - 已有 `repo_profile.yaml`（提供 repo_id / platform / domain 等上下文）
-- 已有 Knowbase 目录结构（`company-knowbase/` 或 `knowledge/`）
+- 已有 `semantic-store/` 结构化语义目录，以及 `knowledge/` 长期文档目录
 - 已由 prd-mission 确定 `workspace_root`、`artifact_root` 和 `run_dir`
 
 读取 `repo_profile.yaml` 获取以下字段，用于后续脚本调用：
@@ -57,7 +57,7 @@ repo_id: "..."
 platform: "backend"          # 当前 repo 主平台
 domain: ["payment", "order"] # 业务领域
 artifact_root: "./.codex/artifacts/prd" # 可选；相对路径相对于 workspace_root 解析
-global_knowbase_path: "../company-knowbase"
+global_knowbase_path: "../semantic-store"
 local_rules_path: "./knowledge/rules/local"
 local_capabilities_path: "./knowledge/capabilities/local"
 ```

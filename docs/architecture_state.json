@@ -22,7 +22,7 @@
     },
     "semantic": {
       "enabled": true,
-      "knowbase_root": "company-knowbase",
+      "knowbase_root": "semantic-store",
       "card_types": [
         "feature",
         "rule",

@@ -25,7 +25,7 @@ Primary outputs:
 Recommended output root:
 
 ```text
-company-knowbase/index/
+semantic-store/index/
 ```
 
 ## Supported Signal Shapes

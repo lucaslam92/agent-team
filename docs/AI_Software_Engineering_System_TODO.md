@@ -110,9 +110,9 @@
 
 建议输出：
 
-- `company-knowbase/index/nodes.json`
-- `company-knowbase/index/edges.json`
-- `company-knowbase/index/graph_meta.json`
+- `semantic-store/index/nodes.json`
+- `semantic-store/index/edges.json`
+- `semantic-store/index/graph_meta.json`
 
 完成标准：
 

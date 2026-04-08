@@ -190,7 +190,7 @@ final_prd_validation.json（invalid）
 
 ---
 
-## 5. Knowbase 设计
+## 5. 语义知识设计
 
 ### 5.1 分层模型
 
@@ -212,7 +212,7 @@ Global（业务层）
 ### 5.3 中心仓库结构
 
 ```
-company-knowbase/
+semantic-store/
   normalized/
     features/
     capabilities/
@@ -330,7 +330,7 @@ platform: "backend"                # android | ios | web | backend | cross
 domain: ["payment", "order"]       # 业务领域，用于规则和 capability 过滤
 team: "platform-team"              # 归属团队
 knowbase_version: "2.1.0"          # 使用的 Knowbase 版本，用于缓存校验
-global_knowbase_path: "../company-knowbase"  # 相对或绝对路径
+global_knowbase_path: "../semantic-store"  # 相对或绝对路径
 local_rules_path: "./knowledge/rules/local"
 local_capabilities_path: "./knowledge/capabilities/local"
 local_playbooks_path: "./knowledge/playbooks/local"
@@ -802,7 +802,7 @@ query -> seed nodes -> k-hop expansion -> subgraph
 建议目录结构：
 
 ```text
-company-knowbase/
+semantic-store/
   normalized/
     features/
     rules/
@@ -957,7 +957,7 @@ graph_score * 0.5 + domain_score * 0.3 + availability_score * 0.2
     },
     "semantic": {
       "enabled": true,
-      "knowbase_root": "company-knowbase",
+      "knowbase_root": "semantic-store",
       "card_types": ["feature", "rule", "capability", "playbook", "capacity"],
       "dedupe": true
     },
