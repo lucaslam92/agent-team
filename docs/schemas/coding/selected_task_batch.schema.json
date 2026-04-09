@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/coding/selected_task_batch.schema.json",
+  "title": "Coding Selected Task Batch",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feature_id",
+    "platform",
+    "selection_timestamp",
+    "selected_tasks",
+    "skipped_tasks",
+    "selection_reasons",
+    "unresolved_dependencies",
+    "execution_order"
+  ],
+  "properties": {
+    "feature_id": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "backend",
+        "frontend",
+        "cross"
+      ]
+    },
+    "selection_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "selected_checkpoint": {
+      "type": "string"
+    },
+    "selected_tasks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/taskRef"
+      }
+    },
+    "skipped_tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/skippedTask"
+      }
+    },
+    "selection_reasons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/taskReason"
+      }
+    },
+    "unresolved_dependencies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/unresolvedDependency"
+      }
+    },
+    "execution_order": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "taskRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "task_type",
+        "priority",
+        "checkpoint"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "task_type": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "checkpoint": {
+          "type": "string"
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "depends_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "done_when": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verification_hooks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "design_artifact_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "changed_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "stack_profile": {
+          "type": "string"
+        }
+      }
+    },
+    "skippedTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "reason"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "depends_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "taskReason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "reasons"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "unresolvedDependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "missing_dependencies"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "missing_dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    }
+  }
+}

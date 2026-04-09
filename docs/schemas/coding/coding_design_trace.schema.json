@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/coding/coding_design_trace.schema.json",
+  "title": "Coding Design Trace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "trace",
+    "count"
+  ],
+  "properties": {
+    "trace": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/traceItem"
+      }
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "traceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_ref",
+        "design_artifact_refs",
+        "contract_refs",
+        "acceptance_refs",
+        "changed_files",
+        "endpoint",
+        "stack_profile"
+      ],
+      "properties": {
+        "task_ref": {
+          "type": "string"
+        },
+        "design_artifact_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "contract_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "acceptance_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "changed_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "stack_profile": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

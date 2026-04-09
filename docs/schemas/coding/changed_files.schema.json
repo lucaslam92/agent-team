@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/coding/changed_files.schema.json",
+  "title": "Coding Changed Files",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "files",
+    "count"
+  ],
+  "properties": {
+    "files": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/changedFile"
+      }
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "changedFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "task_refs",
+        "module",
+        "change_type",
+        "design_artifact_refs",
+        "endpoint"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "task_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "module": {
+          "type": "string"
+        },
+        "change_type": {
+          "type": "string"
+        },
+        "design_artifact_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "endpoint": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

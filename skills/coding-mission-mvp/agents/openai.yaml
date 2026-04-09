@@ -1,0 +1,3 @@
+display_name: Coding Mission MVP
+short_description: Run Coding Mission MVP and emit batch/check report artifacts.
+default_prompt: Execute coding mission mvp from prepared inputs and output selected_task_batch plus coding_check_report.

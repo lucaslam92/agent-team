@@ -1,0 +1,375 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/coding/coding_check_report.schema.json",
+  "title": "Coding Check Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feature_id",
+    "platform",
+    "summary",
+    "verifier_results",
+    "gate_results",
+    "analyzer_results",
+    "open_issues"
+  ],
+  "properties": {
+    "feature_id": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "backend",
+        "frontend",
+        "cross"
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "implemented_task_count",
+        "blocking_issue_count"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "degraded",
+            "failed"
+          ]
+        },
+        "implemented_task_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocking_issue_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "warning_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "verifier_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/verifierResult"
+      }
+    },
+    "gate_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/gateResult"
+      }
+    },
+    "analyzer_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/analyzerResult"
+      }
+    },
+    "open_issues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "repair_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "resume_from": {
+      "type": "string"
+    },
+    "verification_hook_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/hookResult"
+      }
+    }
+  },
+  "$defs": {
+    "verifierResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verifier_id",
+        "status",
+        "blocking",
+        "findings"
+      ],
+      "properties": {
+        "verifier_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "warning",
+            "failed"
+          ]
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        },
+        "repair_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "gateResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "status",
+        "criteria_results"
+      ],
+      "properties": {
+        "gate_id": {
+          "type": "string",
+          "enum": [
+            "coding_input_ready_gate",
+            "coding_change_safety_gate",
+            "coding_verification_gate",
+            "coding_handoff_ready_gate"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed"
+          ]
+        },
+        "blocking_issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "criteria_results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/criterionResult"
+          }
+        },
+        "analyzer_ref": {
+          "type": "string"
+        }
+      }
+    },
+    "criterionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "criterion",
+        "status"
+      ],
+      "properties": {
+        "criterion": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "summary",
+        "severity"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "task_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "artifact_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "analyzerResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "analyzer_id",
+        "failure_type",
+        "reasons",
+        "repair_actions",
+        "resume_from",
+        "suggested_skill",
+        "suggested_command",
+        "target_artifacts",
+        "auto_fixable",
+        "repair_plan"
+      ],
+      "properties": {
+        "analyzer_id": {
+          "type": "string"
+        },
+        "failure_type": {
+          "type": "string"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "repair_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "suggested_command": {
+          "type": "string"
+        },
+        "resume_from": {
+          "type": "string"
+        },
+        "suggested_skill": {
+          "type": "string"
+        },
+        "target_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "auto_fixable": {
+          "type": "boolean"
+        },
+        "repair_plan": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/repairPlanStep"
+          }
+        }
+      }
+    },
+    "repairPlanStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_id",
+        "summary",
+        "skill",
+        "target_artifacts",
+        "rationale",
+        "auto_fixable",
+        "command"
+      ],
+      "properties": {
+        "step_id": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "skill": {
+          "type": "string"
+        },
+        "target_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rationale": {
+          "type": "string"
+        },
+        "auto_fixable": {
+          "type": "boolean"
+        },
+        "command": {
+          "type": "string"
+        }
+      }
+    },
+    "hookResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "hook",
+        "status",
+        "exit_code"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "hook": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "planned",
+            "passed",
+            "failed"
+          ]
+        },
+        "exit_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

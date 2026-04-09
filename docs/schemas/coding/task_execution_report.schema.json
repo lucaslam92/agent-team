@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/coding/task_execution_report.schema.json",
+  "title": "Coding Task Execution Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tasks", "task_count"],
+  "properties": {
+    "tasks": {"type": "array", "items": {"$ref": "#/$defs/taskExecution"}},
+    "task_count": {"type": "integer", "minimum": 0}
+  },
+  "$defs": {
+    "taskExecution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_id", "status", "changed_files", "done_when_results", "hook_results", "blockers", "notes"],
+      "properties": {
+        "task_id": {"type": "string"},
+        "status": {"type": "string", "enum": ["planned", "completed", "failed"]},
+        "changed_files": {"type": "array", "items": {"type": "string"}},
+        "done_when_results": {"type": "array", "items": {"$ref": "#/$defs/doneWhenResult"}},
+        "hook_results": {"type": "array", "items": {"$ref": "#/$defs/hookResult"}},
+        "blockers": {"type": "array", "items": {"type": "string"}},
+        "notes": {"type": "string"}
+      }
+    },
+    "doneWhenResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition", "status"],
+      "properties": {
+        "condition": {"type": "string"},
+        "status": {"type": "string", "enum": ["passed", "failed", "unknown"]}
+      }
+    },
+    "hookResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_id", "hook", "status", "exit_code"],
+      "properties": {
+        "task_id": {"type": "string"},
+        "hook": {"type": "string"},
+        "status": {"type": "string", "enum": ["planned", "passed", "failed"]},
+        "exit_code": {"type": ["integer", "null"]}
+      }
+    }
+  }
+}

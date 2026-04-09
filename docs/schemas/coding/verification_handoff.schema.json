@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/coding/verification_handoff.schema.json",
+  "title": "Coding Verification Handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "implemented_tasks",
+    "changed_files",
+    "expected_checks",
+    "acceptance_trace",
+    "known_risks",
+    "open_issues",
+    "status"
+  ],
+  "properties": {
+    "implemented_tasks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expected_checks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "acceptance_trace": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/acceptanceTrace"
+      }
+    },
+    "known_risks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "open_issues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/openIssue"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "blocked"
+      ]
+    }
+  },
+  "$defs": {
+    "acceptanceTrace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_ref",
+        "acceptance_refs",
+        "design_artifact_refs",
+        "endpoint",
+        "stack_profile"
+      ],
+      "properties": {
+        "task_ref": {
+          "type": "string"
+        },
+        "acceptance_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "design_artifact_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "stack_profile": {
+          "type": "string"
+        }
+      }
+    },
+    "openIssue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "summary",
+        "severity"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,3 @@
+display_name: coding.read_inputs
+short_description: Validate coding mission input payload and report missing required keys.
+default_prompt: Validate coding mission input payload and report missing required keys.
