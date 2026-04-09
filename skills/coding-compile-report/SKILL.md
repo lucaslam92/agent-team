@@ -1,7 +1,8 @@
 ---
 name: coding.compile_report
 description: >
-  Compile Coding Mission artifacts for verification handoff.
+  汇总所有 Coding Mission 产物，生成人类可读的 coding_summary.md，供 Review / PR 阶段使用。
+  在 coding.verify 通过后运行；凡是需要生成 coding 总结、编译 coding 报告，都应使用此 skill。
 ---
 
 Inputs:

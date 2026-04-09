@@ -24,7 +24,13 @@ def build_parser() -> argparse.ArgumentParser:
 def run() -> int:
     args = build_parser().parse_args()
     batch = json.loads(Path(args.selected_task_batch).read_text(encoding="utf-8"))
-    selected = [task for task in batch.get("selected_tasks", []) if not str(task.get("endpoint", "")).startswith("backend")]
+    # Explicitly match known frontend endpoint prefixes.
+    # Avoid "not startswith backend" — it would incorrectly capture empty or cross endpoints.
+    FRONTEND_PREFIXES = ("frontend", "web", "mobile", "ios", "android")
+    selected = [
+        task for task in batch.get("selected_tasks", [])
+        if str(task.get("endpoint", "")).lower().startswith(FRONTEND_PREFIXES)
+    ]
     hook_results = run_task_hooks(selected, execute_hooks=args.execute_hooks)
     payload = {
         "endpoint": "frontend",

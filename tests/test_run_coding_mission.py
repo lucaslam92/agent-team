@@ -85,7 +85,7 @@ def test_gate_failure_when_input_missing() -> None:
     batch = rcm.build_selected_task_batch(inputs, selected, skipped, unresolved)
     hooks = rcm.run_task_hooks(batch["selected_tasks"], execute_hooks=False)
     changed = rcm.build_changed_files(batch["selected_tasks"])
-    evidence = rcm.build_implementation_evidence({"_selected_tasks": batch["selected_tasks"]}, hooks, execute_evidence=False)
+    evidence = rcm.build_implementation_evidence(inputs, batch["selected_tasks"], hooks, execute_evidence=False)
     handoff = rcm.build_verification_handoff(batch["selected_tasks"], changed, hooks, open_issues=[], implementation_evidence=evidence)
     gates, issues = rcm.evaluate_gates(missing, True, batch, hooks, changed, evidence, handoff, [])
     assert any(gate["gate_id"] == "coding_input_ready_gate" and gate["status"] == "failed" for gate in gates)
@@ -105,7 +105,7 @@ def test_verification_gate_fails_on_failed_hook() -> None:
     }
     hooks = rcm.run_task_hooks(batch["selected_tasks"], execute_hooks=True)
     changed = {"files": [], "count": 0}
-    evidence = rcm.build_implementation_evidence({"_selected_tasks": batch["selected_tasks"]}, hooks, execute_evidence=False)
+    evidence = rcm.build_implementation_evidence({}, batch["selected_tasks"], hooks, execute_evidence=False)
     handoff = rcm.build_verification_handoff(batch["selected_tasks"], changed, hooks, open_issues=[], implementation_evidence=evidence)
     gates, issues = rcm.evaluate_gates([], True, batch, hooks, changed, evidence, handoff, [])
     assert any(gate["gate_id"] == "coding_verification_gate" and gate["status"] == "failed" for gate in gates)
@@ -120,8 +120,7 @@ def test_build_changed_files_handoff_and_new_core_artifacts() -> None:
 
     changed = rcm.build_changed_files(batch["selected_tasks"])
     execution_context = rcm.build_execution_context(inputs, batch)
-    inputs["_selected_tasks"] = batch["selected_tasks"]
-    implementation_evidence = rcm.build_implementation_evidence(inputs, hooks, execute_evidence=False)
+    implementation_evidence = rcm.build_implementation_evidence(inputs, batch["selected_tasks"], hooks, execute_evidence=False)
     handoff = rcm.build_verification_handoff(batch["selected_tasks"], changed, hooks, open_issues=[], implementation_evidence=implementation_evidence)
     design_trace = rcm.build_coding_design_trace(batch["selected_tasks"])
 
@@ -139,7 +138,7 @@ def test_build_changed_files_handoff_and_new_core_artifacts() -> None:
 def test_build_implementation_evidence_with_plan_commands() -> None:
     inputs = base_inputs()
     inputs["verification_plan"] = {"endpoint_profiles": {"backend::python-fastapi": {"compile": ["echo compile"], "lint": ["echo lint"], "integration": ["echo int"], "contract": ["echo contract"], "smoke": ["echo smoke"]}}}
-    inputs["_selected_tasks"] = [
+    selected_tasks = [
         {
             "task_id": "T1",
             "endpoint": "backend",
@@ -147,7 +146,7 @@ def test_build_implementation_evidence_with_plan_commands() -> None:
         }
     ]
     hooks = [{"task_id": "T1", "hook": "pytest -q", "status": "planned", "exit_code": None}]
-    evidence = rcm.build_implementation_evidence(inputs, hooks, execute_evidence=False)
+    evidence = rcm.build_implementation_evidence(inputs, selected_tasks, hooks, execute_evidence=False)
     assert evidence["summary"]["executed_evidence"] is False
     assert evidence["compile_results"][0]["status"] == "planned"
     assert evidence["lint_results"][0]["status"] == "planned"

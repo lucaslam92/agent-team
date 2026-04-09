@@ -1,9 +1,10 @@
 ---
 name: coding.mission.mvp
 description: >
-  Run the Coding Mission MVP chain (read_inputs -> select_task_batch -> verify -> compile_report)
-  and emit `selected_task_batch.json` plus `coding_check_report.json` for downstream verification.
-  Use this when design artifacts are ready and you need constrained, traceable coding handoff outputs.
+  一键运行完整 Coding Mission MVP 链路（read_inputs → select_task_batch → verify → compile_report），
+  产出 selected_task_batch.json 和 coding_check_report.json。
+  当 design artifacts 已就绪、需要一次性完成 coding 准备和 gate 检查时使用此 skill；
+  即使用户只说"运行 coding mission"也应优先触发此 skill，而不是逐个调用子 skill。
 ---
 
 Execute Coding Mission MVP with a single command.

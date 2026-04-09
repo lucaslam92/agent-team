@@ -1,7 +1,9 @@
 ---
 name: coding.run_verification_hooks
 description: >
-  Execute or plan verification hooks for selected coding tasks and emit structured hook results.
+  执行 selected task batch 中每个任务声明的 verification_hooks，写出 hook_results.json。
+  在 execute_tasks 完成后、coding.verify 之前必须运行；凡是需要执行 coding verification hooks、
+  或检查 hook 执行结果，都应使用此 skill。
 ---
 
 Inputs:
