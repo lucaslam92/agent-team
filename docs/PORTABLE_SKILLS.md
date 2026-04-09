@@ -80,6 +80,15 @@ portable-skills/
   architecture-sync/
   knowledge-collector/
   knowledge-promoter/
+  coding-mission-mvp/
+  coding-read-inputs/
+  coding-select-task-batch/
+  coding-resolve-task-context/
+  coding-backend-execute-tasks/
+  coding-frontend-execute-tasks/
+  coding-verify/
+  coding-compile-report/
+  coding-run-verification-hooks/
 ```
 
 ## 约束

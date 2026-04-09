@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/coding/execution_context.schema.json",
+  "title": "Coding Execution Context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feature_id",
+    "platform",
+    "generated_at",
+    "task_graph_sources",
+    "design_asset_refs",
+    "repo_context_refs",
+    "selected_checkpoint",
+    "endpoint_profiles"
+  ],
+  "properties": {
+    "feature_id": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "backend",
+        "frontend",
+        "cross"
+      ]
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "task_graph_sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "design_asset_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "repo_context_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "selected_checkpoint": {
+      "type": "string"
+    },
+    "endpoint_profiles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

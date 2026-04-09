@@ -1,0 +1,3 @@
+display_name: coding.resolve_task_context
+short_description: Build execution_context from coding inputs and selected batch.
+default_prompt: Resolve task context and produce execution_context.json for coding mission.

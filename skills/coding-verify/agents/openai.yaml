@@ -1,0 +1,3 @@
+display_name: coding.verify
+short_description: Run coding verification gates and produce coding_check_report.
+default_prompt: Run coding verification gates and produce coding_check_report.

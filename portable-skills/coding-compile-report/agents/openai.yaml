@@ -1,0 +1,3 @@
+display_name: coding.compile_report
+short_description: Compile coding mission report artifacts for downstream verification.
+default_prompt: Compile coding mission report artifacts for downstream verification.

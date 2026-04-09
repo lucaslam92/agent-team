@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://auto-dev-agent.local/schemas/coding/implementation_evidence.schema.json",
+  "title": "Coding Implementation Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "compile_results",
+    "lint_results",
+    "unit_test_results",
+    "integration_test_results",
+    "contract_test_results",
+    "smoke_results",
+    "summary"
+  ],
+  "properties": {
+    "compile_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/commandResult"
+      }
+    },
+    "lint_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/commandResult"
+      }
+    },
+    "unit_test_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/hookResult"
+      }
+    },
+    "integration_test_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/commandResult"
+      }
+    },
+    "contract_test_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/commandResult"
+      }
+    },
+    "smoke_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/commandResult"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed_hook_count",
+        "failed_hook_count",
+        "planned_hook_count",
+        "executed_evidence",
+        "profile_command_count"
+      ],
+      "properties": {
+        "passed_hook_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_hook_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "planned_hook_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "executed_evidence": {
+          "type": "boolean"
+        },
+        "profile_command_count": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "hookResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "hook",
+        "status",
+        "exit_code"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "hook": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "planned",
+            "passed",
+            "failed"
+          ]
+        },
+        "exit_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "commandResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "status",
+        "exit_code"
+      ],
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "planned",
+            "passed",
+            "failed"
+          ]
+        },
+        "exit_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

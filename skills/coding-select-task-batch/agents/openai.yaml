@@ -1,0 +1,3 @@
+display_name: coding.select_task_batch
+short_description: Select ready tasks and generate selected_task_batch artifact.
+default_prompt: Select ready tasks and generate selected_task_batch artifact.

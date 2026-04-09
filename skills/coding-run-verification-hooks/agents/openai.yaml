@@ -1,0 +1,3 @@
+display_name: coding.run_verification_hooks
+short_description: Execute coding verification hooks and emit structured hook results.
+default_prompt: Run verification hooks from selected_task_batch and save hook_results artifact.
