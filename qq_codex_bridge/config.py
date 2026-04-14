@@ -21,9 +21,6 @@ class BotConfig:
 
 @dataclass
 class GatewayConfig:
-    host: str = "0.0.0.0"
-    port: int = 8080
-    path: str = "/webhook"
     # Seconds before a codex exec is force-killed
     exec_timeout: int = 120
 
@@ -52,8 +49,8 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
     Load config from YAML file, then override with environment variables.
 
     Environment variables (all optional if YAML is present):
-      QQ_APP_ID, QQ_TOKEN, QQ_SECRET, QQ_SANDBOX
-      GATEWAY_HOST, GATEWAY_PORT, GATEWAY_PATH, EXEC_TIMEOUT
+      QQ_APP_ID, QQ_TOKEN, QQ_SANDBOX
+      EXEC_TIMEOUT
       CODEX_BINARY, CODEX_DEFAULT_WORKDIR, REPLY_CHUNK_SIZE, REPLY_MAX_RETRIES
     """
     raw: dict = {}
@@ -84,9 +81,6 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
     )
 
     gateway = GatewayConfig(
-        host=os.environ.get("GATEWAY_HOST", gw_raw.get("host", "0.0.0.0")),
-        port=int(os.environ.get("GATEWAY_PORT", gw_raw.get("port", 8080))),
-        path=os.environ.get("GATEWAY_PATH", gw_raw.get("path", "/webhook")),
         exec_timeout=int(os.environ.get("EXEC_TIMEOUT", gw_raw.get("exec_timeout", 120))),
     )
 
