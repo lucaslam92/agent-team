@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Config with credentials
+config.yaml
+config.yml
+.env
+
+# Temp attachment downloads
+qq_attach_*/
+
+# IDE
+.idea/
+.vscode/
+*.swp

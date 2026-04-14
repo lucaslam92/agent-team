@@ -1,0 +1,29 @@
+# QQ Codex Bridge — example configuration
+# Copy to config.yaml and fill in your credentials.
+# All values can also be set via environment variables (see config.py).
+
+bot:
+  app_id: "YOUR_QQ_APP_ID"
+  token: "YOUR_QQ_BOT_TOKEN"
+  # 32-byte Ed25519 public key from QQ developer console (hex string)
+  secret: "YOUR_QQ_BOT_SECRET_HEX"
+  # Set to true to use sandbox API endpoints
+  sandbox: false
+
+gateway:
+  host: "0.0.0.0"
+  port: 8080
+  # Webhook path registered in QQ developer console
+  path: "/webhook"
+  # Seconds before a codex exec call is force-killed
+  exec_timeout: 120
+
+codex:
+  # Path to the codex binary (default: found via $PATH)
+  binary: "codex"
+  # Default working directory for new sessions
+  default_workdir: "~"
+  # Max characters per QQ message (QQ group limit ~2000)
+  reply_chunk_size: 1800
+  # Max retry attempts for reply delivery
+  reply_max_retries: 3

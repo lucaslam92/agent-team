@@ -1,0 +1,107 @@
+"""
+Configuration loader for QQ Codex Bridge.
+Reads from environment variables with fallback to config.yaml.
+"""
+from __future__ import annotations
+
+import os
+import yaml
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
+
+
+@dataclass
+class BotConfig:
+    app_id: str
+    token: str
+    secret: str
+    sandbox: bool = False
+
+
+@dataclass
+class GatewayConfig:
+    host: str = "0.0.0.0"
+    port: int = 8080
+    path: str = "/webhook"
+    # Seconds before a codex exec is force-killed
+    exec_timeout: int = 120
+
+
+@dataclass
+class CodexConfig:
+    # Path to codex binary; defaults to $PATH lookup
+    binary: str = "codex"
+    # Default working directory for new sessions
+    default_workdir: str = str(Path.home())
+    # Max length of a single reply chunk (QQ message limit ~2000 chars)
+    reply_chunk_size: int = 1800
+    # Max retries for reply delivery
+    reply_max_retries: int = 3
+
+
+@dataclass
+class AppConfig:
+    bot: BotConfig
+    gateway: GatewayConfig = field(default_factory=GatewayConfig)
+    codex: CodexConfig = field(default_factory=CodexConfig)
+
+
+def load_config(config_path: Optional[str] = None) -> AppConfig:
+    """
+    Load config from YAML file, then override with environment variables.
+
+    Environment variables (all optional if YAML is present):
+      QQ_APP_ID, QQ_TOKEN, QQ_SECRET, QQ_SANDBOX
+      GATEWAY_HOST, GATEWAY_PORT, GATEWAY_PATH, EXEC_TIMEOUT
+      CODEX_BINARY, CODEX_DEFAULT_WORKDIR, REPLY_CHUNK_SIZE, REPLY_MAX_RETRIES
+    """
+    raw: dict = {}
+
+    # 1. Load YAML if provided or auto-detect
+    search_paths = [config_path] if config_path else [
+        "config.yaml",
+        "config.yml",
+        str(Path(__file__).parent / "config.yaml"),
+    ]
+    for p in search_paths:
+        if p and Path(p).exists():
+            with open(p) as f:
+                raw = yaml.safe_load(f) or {}
+            break
+
+    bot_raw = raw.get("bot", {})
+    gw_raw = raw.get("gateway", {})
+    cx_raw = raw.get("codex", {})
+
+    # 2. Environment variables override YAML
+    bot = BotConfig(
+        app_id=os.environ.get("QQ_APP_ID", bot_raw.get("app_id", "")),
+        token=os.environ.get("QQ_TOKEN", bot_raw.get("token", "")),
+        secret=os.environ.get("QQ_SECRET", bot_raw.get("secret", "")),
+        sandbox=os.environ.get("QQ_SANDBOX", str(bot_raw.get("sandbox", False))).lower()
+        in ("1", "true", "yes"),
+    )
+
+    gateway = GatewayConfig(
+        host=os.environ.get("GATEWAY_HOST", gw_raw.get("host", "0.0.0.0")),
+        port=int(os.environ.get("GATEWAY_PORT", gw_raw.get("port", 8080))),
+        path=os.environ.get("GATEWAY_PATH", gw_raw.get("path", "/webhook")),
+        exec_timeout=int(os.environ.get("EXEC_TIMEOUT", gw_raw.get("exec_timeout", 120))),
+    )
+
+    codex = CodexConfig(
+        binary=os.environ.get("CODEX_BINARY", cx_raw.get("binary", "codex")),
+        default_workdir=os.environ.get(
+            "CODEX_DEFAULT_WORKDIR",
+            cx_raw.get("default_workdir", str(Path.home())),
+        ),
+        reply_chunk_size=int(
+            os.environ.get("REPLY_CHUNK_SIZE", cx_raw.get("reply_chunk_size", 1800))
+        ),
+        reply_max_retries=int(
+            os.environ.get("REPLY_MAX_RETRIES", cx_raw.get("reply_max_retries", 3))
+        ),
+    )
+
+    return AppConfig(bot=bot, gateway=gateway, codex=codex)

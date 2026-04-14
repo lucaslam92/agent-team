@@ -1,0 +1,17 @@
+# QQ Codex Bridge dependencies
+
+# Web framework + ASGI server
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+
+# HTTP client (async)
+aiohttp>=3.9.0
+
+# Ed25519 signature verification
+cryptography>=42.0.0
+
+# Config
+pyyaml>=6.0.1
+
+# Optional: structured logging
+python-json-logger>=2.0.7
