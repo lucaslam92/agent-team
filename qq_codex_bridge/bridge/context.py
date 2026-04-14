@@ -13,9 +13,12 @@ from __future__ import annotations
 import logging
 import threading
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
 log = logging.getLogger(__name__)
+
+ModelName = Literal["codex", "claude"]
+DEFAULT_MODEL: ModelName = "codex"
 
 
 @dataclass
@@ -23,7 +26,9 @@ class SessionContext:
     """State for a single conversation."""
     session_id: str
     workdir: str
-    # Paths of downloaded attachments queued for next codex call
+    # Active CLI backend for this session
+    model: ModelName = DEFAULT_MODEL
+    # Paths of downloaded attachments queued for next exec call
     pending_files: List[str] = field(default_factory=list)
 
 
@@ -50,6 +55,11 @@ class SessionStore:
         ctx = self.get(session_id)
         with self._lock:
             ctx.workdir = new_workdir
+
+    def update_model(self, session_id: str, new_model: ModelName) -> None:
+        ctx = self.get(session_id)
+        with self._lock:
+            ctx.model = new_model
 
     def add_pending_file(self, session_id: str, path: str) -> None:
         ctx = self.get(session_id)

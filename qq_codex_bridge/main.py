@@ -18,8 +18,9 @@ import logging
 import tempfile
 from typing import Optional
 
-from qq_codex_bridge.bridge.codex import download_attachment, exec_codex
+from qq_codex_bridge.bridge.codex import download_attachment
 from qq_codex_bridge.bridge.context import SessionStore, make_session_id
+from qq_codex_bridge.bridge import executor
 from qq_codex_bridge.config import AppConfig, load_config
 from qq_codex_bridge.gateway.models import IncomingMessage
 from qq_codex_bridge.gateway.ws_client import BotGatewayClient
@@ -70,12 +71,14 @@ async def dispatch(
         result = handle_command(
             msg.content,
             session_workdir=ctx.workdir,
+            session_model=ctx.model,
             default_workdir=config.codex.default_workdir,
         )
         if result is not None:
-            reply_text, new_workdir = result
-            store.update_workdir(session_id, new_workdir)
-            await sender.send(reply_text, source=msg)
+            store.update_workdir(session_id, result.new_workdir)
+            if result.new_model is not None:
+                store.update_model(session_id, result.new_model)
+            await sender.send(result.reply, source=msg)
             return
 
     # Step 2: download image attachments (skip video for now)
@@ -97,10 +100,11 @@ async def dispatch(
         await sender.send("(empty message — nothing to do)", source=msg)
         return
 
-    result = await exec_codex(
+    result = await executor.run(
         prompt=msg.content,
+        model=ctx.model,
         workdir=ctx.workdir,
-        binary=config.codex.binary,
+        codex_binary=config.codex.binary,
         image_paths=image_paths or None,
         timeout=config.gateway.exec_timeout,
     )
