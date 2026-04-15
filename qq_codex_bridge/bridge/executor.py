@@ -3,12 +3,12 @@ Unified executor — dispatches to the correct CLI backend based on session mode
 
 Supported backends
 ------------------
-codex  →  codex exec --cwd <workdir> [--image <path>...] -- <prompt>
+codex  →  codex exec -C <workdir> --skip-git-repo-check [--image <path>...] <prompt>
 claude →  claude -p <prompt> [--image <path>...]
-              (runs in <workdir> via subprocess cwd parameter)
+              (runs in <workdir> via subprocess cwd + stdin=DEVNULL)
 
-Both calls are one-shot, non-interactive, with stdout+stderr captured.
-ANSI escape codes are stripped from all output before returning.
+Both calls are one-shot, non-interactive (stdin=DEVNULL), stdout+stderr captured.
+ANSI escape codes and codex diagnostic noise are stripped before returning.
 """
 from __future__ import annotations
 
@@ -21,6 +21,15 @@ from typing import List, Optional
 
 from qq_codex_bridge.bridge.codex import ExecResult, _strip_ansi
 from qq_codex_bridge.bridge.context import ModelName
+
+# codex 固定输出的诊断行，对用户无意义，过滤掉
+_CODEX_NOISE = frozenset([
+    "Reading additional input from stdin...",
+])
+
+def _filter_codex_output(text: str) -> str:
+    lines = [l for l in text.splitlines() if l.strip() not in _CODEX_NOISE]
+    return "\n".join(lines)
 
 log = logging.getLogger(__name__)
 
@@ -92,16 +101,23 @@ async def _run_codex(
             returncode=127,
         )
 
-    cmd: List[str] = [bin_path, "exec", "--cwd", workdir]
+    cmd: List[str] = [bin_path, "exec", "-C", workdir, "--skip-git-repo-check"]
     for img in (image_paths or []):
         if Path(img).exists():
-            cmd += ["--image", img]
+            cmd += ["-i", img]
         else:
             log.warning("Image not found, skipping: %s", img)
-    cmd += ["--", prompt]
+    cmd += [prompt]
 
     log.info("[codex] %s", " ".join(cmd))
-    return await _exec(cmd, workdir=workdir, timeout=timeout, label="codex")
+    result = await _exec(cmd, workdir=workdir, timeout=timeout, label="codex")
+    # 过滤 codex 固定输出的诊断噪声
+    return ExecResult(
+        stdout=_filter_codex_output(result.stdout),
+        stderr=_filter_codex_output(result.stderr),
+        returncode=result.returncode,
+        timed_out=result.timed_out,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +168,7 @@ async def _exec(
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
+            stdin=asyncio.subprocess.DEVNULL,   # 防止 CLI 等待 stdin 输入
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=workdir,
