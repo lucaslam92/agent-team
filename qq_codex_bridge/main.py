@@ -1,15 +1,9 @@
 """
 QQ Codex Bridge — main entry point.
 
-Connects to QQ's WebSocket gateway and wires together all layers.
-
-Flow per incoming message:
-  QQ WS event → Message Router → Command Layer?
-      → (if not command) download attachments → Codex Bridge
-      → Reply Sender → QQ API
-
-Usage:
-  python -m qq_codex_bridge.main
+Flow:
+  QQ WS event → normalize → /command? → handle locally
+                                       → send to persistent CLI session → reply
 """
 from __future__ import annotations
 
@@ -19,8 +13,7 @@ import tempfile
 from typing import Optional
 
 from qq_codex_bridge.bridge.codex import download_attachment
-from qq_codex_bridge.bridge.context import SessionStore, make_session_id
-from qq_codex_bridge.bridge import executor
+from qq_codex_bridge.bridge.session import SessionManager
 from qq_codex_bridge.config import AppConfig, load_config
 from qq_codex_bridge.gateway.models import IncomingMessage
 from qq_codex_bridge.gateway.ws_client import BotGatewayClient
@@ -36,101 +29,89 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
+def _session_id(msg: IncomingMessage) -> str:
+    if msg.group_openid:
+        return f"group:{msg.group_openid}"
+    if msg.channel_id:
+        return f"channel:{msg.channel_id}:user:{msg.author_id}"
+    return f"dm:{msg.author_id}"
+
+
 async def dispatch(
     payload: dict,
     config: AppConfig,
-    store: SessionStore,
+    session_mgr: SessionManager,
     sender: ReplySender,
 ) -> None:
-    """
-    Top-level message handler for each QQ event.
-
-    1. Normalize raw QQ event → IncomingMessage
-    2. Resolve session context (workdir)
-    3. Check for local /command
-    4. Download any image attachments
-    5. Run codex exec
-    6. Send reply
-    """
     msg: Optional[IncomingMessage] = normalize(payload)
     if msg is None:
         return
 
-    log.info(
-        "Message from %s [%s]: %r",
-        msg.author_name,
-        msg.event_type.value,
-        msg.content[:80],
-    )
+    log.info("Message from %s: %r", msg.author_name, msg.content[:80])
 
-    session_id = make_session_id(msg.group_openid, msg.channel_id, msg.author_id)
-    ctx = store.get(session_id)
+    sid = _session_id(msg)
+    sess = session_mgr.get(sid)
 
-    # Step 1: handle built-in /commands
+    # ── Built-in /commands ──────────────────────────────────────────────
     if msg.content.startswith("/"):
         result = handle_command(
             msg.content,
-            session_workdir=ctx.workdir,
-            session_model=ctx.model,
+            session_workdir=sess.workdir,
+            session_model=sess.model,
             default_workdir=config.codex.default_workdir,
         )
         if result is not None:
-            store.update_workdir(session_id, result.new_workdir)
-            if result.new_model is not None:
-                store.update_model(session_id, result.new_model)
+            # Apply workdir / model change (restarts the CLI process)
+            workdir_changed = result.new_workdir != sess.workdir
+            model_changed = result.new_model is not None and result.new_model != sess.model
+            if workdir_changed or model_changed:
+                sess.switch(
+                    model=result.new_model or sess.model,
+                    workdir=result.new_workdir,
+                )
             await sender.send(result.reply, source=msg)
             return
 
-    # Step 2: download image attachments (skip video for now)
-    image_paths: list[str] = []
+    # ── Download image attachments (mention path in prompt) ─────────────
+    image_notes = ""
     if msg.attachments:
         tmp_dir = tempfile.mkdtemp(prefix="qq_attach_")
+        paths = []
         for att in msg.attachments:
             if att.content_type.startswith("image/"):
                 path = await download_attachment(att.url, tmp_dir)
                 if path:
-                    image_paths.append(path)
-            elif att.content_type.startswith("video/"):
-                log.info("Video attachment — skipping (not yet supported): %s", att.url)
+                    paths.append(path)
+        if paths:
+            image_notes = "\n[附件图片: " + ", ".join(paths) + "]"
 
-    image_paths += store.pop_pending_files(session_id)
-
-    # Step 3: run codex exec
-    if not msg.content and not image_paths:
-        await sender.send("(empty message — nothing to do)", source=msg)
+    prompt = msg.content + image_notes
+    if not prompt.strip():
+        await sender.send("(空消息)", source=msg)
         return
 
-    result = await executor.run(
-        prompt=msg.content,
-        model=ctx.model,
-        workdir=ctx.workdir,
-        codex_binary=config.codex.binary,
-        image_paths=image_paths or None,
-        timeout=config.gateway.exec_timeout,
-    )
-
-    # Step 4: compose and send reply
-    if result.timed_out:
-        reply = (
-            f"[Timeout] codex exec exceeded {config.gateway.exec_timeout}s.\n\n"
-            f"Partial output:\n{result.combined}"
+    # ── Forward to persistent CLI session ───────────────────────────────
+    loop = asyncio.get_event_loop()
+    try:
+        reply = await loop.run_in_executor(
+            None,
+            sess.send_recv,
+            prompt,
+            float(config.gateway.idle_timeout),
         )
-    elif not result.success:
-        reply = (
-            f"[Exit {result.returncode}]\n{result.combined}"
-            if result.combined
-            else f"codex exited with code {result.returncode}"
-        )
-    else:
-        reply = result.combined or "(codex produced no output)"
+    except FileNotFoundError as exc:
+        reply = f"[错误] {exc}"
+    except Exception as exc:
+        log.exception("CLI session error")
+        reply = f"[错误] {exc}"
 
-    await sender.send(reply, source=msg)
+    await sender.send(reply or "(无输出)", source=msg)
 
 
 async def main() -> None:
     config = load_config()
 
-    store = SessionStore(default_workdir=config.codex.default_workdir)
+    session_mgr = SessionManager(default_workdir=config.codex.default_workdir)
     sender = ReplySender(
         app_id=config.bot.app_id,
         app_secret=config.bot.app_secret,
@@ -140,7 +121,7 @@ async def main() -> None:
     )
 
     async def _dispatch(payload: dict) -> None:
-        await dispatch(payload, config, store, sender)
+        await dispatch(payload, config, session_mgr, sender)
 
     client = BotGatewayClient(
         app_id=config.bot.app_id,

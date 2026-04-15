@@ -20,8 +20,8 @@ class BotConfig:
 
 @dataclass
 class GatewayConfig:
-    # Seconds before a codex exec is force-killed
-    exec_timeout: int = 120
+    # Seconds of CLI output silence before treating response as complete
+    idle_timeout: float = 3.0
 
 
 @dataclass
@@ -79,7 +79,7 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
     )
 
     gateway = GatewayConfig(
-        exec_timeout=int(os.environ.get("EXEC_TIMEOUT", gw_raw.get("exec_timeout", 120))),
+        idle_timeout=float(os.environ.get("IDLE_TIMEOUT", gw_raw.get("idle_timeout", 3.0))),
     )
 
     codex = CodexConfig(

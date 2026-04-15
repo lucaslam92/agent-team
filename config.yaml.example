@@ -5,16 +5,13 @@
 bot:
   app_id: "YOUR_QQ_APP_ID"          # QQ 开放平台 AppID（数字字符串）
   app_secret: "YOUR_QQ_APP_SECRET"  # QQ 开放平台 AppSecret
-  # Set to true to use sandbox API endpoints
-  sandbox: false
+  sandbox: false                    # true = 使用沙箱 API
 
 gateway:
-  # Seconds before a codex exec call is force-killed
-  exec_timeout: 120
+  # CLI 输出静默多少秒后认为本轮回复完成（秒，支持小数）
+  idle_timeout: 3.0
 
 codex:
-  # Path to the codex binary (default: found via $PATH)
-  binary: "codex"
   # Default working directory for new sessions
   default_workdir: "~"
   # Max characters per QQ message (QQ group limit ~2000)
