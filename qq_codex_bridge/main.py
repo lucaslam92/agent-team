@@ -95,9 +95,7 @@ async def dispatch(
     try:
         reply = await loop.run_in_executor(
             None,
-            sess.send_recv,
-            prompt,
-            float(config.gateway.idle_timeout),
+            lambda: sess.send_recv(prompt),
         )
     except FileNotFoundError as exc:
         reply = f"[错误] {exc}"
