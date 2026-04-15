@@ -3,8 +3,8 @@
 # All values can also be set via environment variables (see config.py).
 
 bot:
-  app_id: "YOUR_QQ_APP_ID"
-  token: "YOUR_QQ_BOT_TOKEN"
+  app_id: "YOUR_QQ_APP_ID"          # QQ 开放平台 AppID（数字字符串）
+  app_secret: "YOUR_QQ_APP_SECRET"  # QQ 开放平台 AppSecret
   # Set to true to use sandbox API endpoints
   sandbox: false
 

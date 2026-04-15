@@ -174,8 +174,8 @@ echo "  1. 打开 https://q.qq.com  登录 QQ 开放平台"
 echo "  2. 「机器人」→「创建机器人」，填写基本信息"
 echo "  3. 进入机器人详情 →「开发设置」"
 echo "  4. 记录以下两个值:"
-echo "     - AppID  (数字，如: 102345678)"
-echo "     - Token  (长字符串)"
+echo "     - AppID     (数字，如: 102345678)"
+echo "     - AppSecret (字符串，在「AppSecret」一栏查看/重置)"
 echo "  5. 接入方式选择「WebSocket」长连接"
 echo "  6. 开通所需「事件订阅」:"
 echo "     - 群聊 @机器人消息 (GROUP_AT_MESSAGE_CREATE)"
@@ -184,26 +184,26 @@ echo "     - 频道 @机器人消息 (AT_MESSAGE_CREATE，可选)"
 echo ""
 
 # 如果 config.yaml 已存在，读取现有值作为默认
-EXISTING_APP_ID=""; EXISTING_TOKEN=""; EXISTING_SANDBOX="false"
+EXISTING_APP_ID=""; EXISTING_SECRET=""; EXISTING_SANDBOX="false"
 if [[ -f "$CONFIG_FILE" ]]; then
     EXISTING_APP_ID=$(grep 'app_id:' "$CONFIG_FILE" | head -1 | sed 's/.*app_id: *"\(.*\)"/\1/' | tr -d '"' || true)
-    EXISTING_TOKEN=$(grep 'token:' "$CONFIG_FILE" | head -1 | sed 's/.*token: *"\(.*\)"/\1/' | tr -d '"' || true)
+    EXISTING_SECRET=$(grep 'app_secret:' "$CONFIG_FILE" | head -1 | sed 's/.*app_secret: *"\(.*\)"/\1/' | tr -d '"' || true)
     EXISTING_SANDBOX=$(grep 'sandbox:' "$CONFIG_FILE" | head -1 | awk '{print $2}' || echo "false")
     warn "检测到已有 config.yaml，按回车保留现有值"
 fi
 
-ask "QQ App ID${EXISTING_APP_ID:+ [当前: $EXISTING_APP_ID]}: "; read -r INPUT_APP_ID
+ask "QQ AppID${EXISTING_APP_ID:+ [当前: $EXISTING_APP_ID]}: "; read -r INPUT_APP_ID
 QQ_APP_ID="${INPUT_APP_ID:-$EXISTING_APP_ID}"
 
-ask "QQ Bot Token${EXISTING_TOKEN:+ [当前: ***]}: "; read -rs INPUT_TOKEN; echo ""
-QQ_TOKEN="${INPUT_TOKEN:-$EXISTING_TOKEN}"
+ask "QQ AppSecret${EXISTING_SECRET:+ [当前: ***]}: "; read -rs INPUT_SECRET; echo ""
+QQ_APP_SECRET="${INPUT_SECRET:-$EXISTING_SECRET}"
 
 ask "是否使用沙箱环境(sandbox)? [y/N]: "; read -r INPUT_SANDBOX
 QQ_SANDBOX="false"
 [[ "${INPUT_SANDBOX,,}" == "y" ]] && QQ_SANDBOX="true"
 
-if [[ -z "$QQ_APP_ID" || -z "$QQ_TOKEN" ]]; then
-    warn "App ID 或 Token 为空，跳过 QQ 连通性测试"
+if [[ -z "$QQ_APP_ID" || -z "$QQ_APP_SECRET" ]]; then
+    warn "AppID 或 AppSecret 为空，跳过 QQ 连通性测试"
     QQ_CONFIGURED=false
 else
     QQ_CONFIGURED=true
@@ -236,7 +236,7 @@ cat > "$CONFIG_FILE" << YAML
 
 bot:
   app_id: "$QQ_APP_ID"
-  token: "$QQ_TOKEN"
+  app_secret: "$QQ_APP_SECRET"
   sandbox: $QQ_SANDBOX
 
 gateway:
@@ -302,25 +302,46 @@ success "便捷脚本已生成: start.sh / start_bg.sh / stop.sh"
 step "第 9 步: 测试 QQ Gateway 连通性"
 
 if [[ "$QQ_CONFIGURED" == "true" ]]; then
-    info "正在调用 GET /gateway/bot 验证 Token..."
-
     BASE_URL="https://api.sgroup.qq.com"
     [[ "$QQ_SANDBOX" == "true" ]] && BASE_URL="https://sandbox.api.sgroup.qq.com"
 
-    HTTP_CODE=$(curl -s -o /tmp/gw_response.json -w "%{http_code}" \
-        -H "Authorization: QQBot $QQ_TOKEN" \
-        "$BASE_URL/gateway/bot" 2>/dev/null) || HTTP_CODE="ERR"
+    # Step 1: AppID + AppSecret → access_token
+    info "正在换取 access_token (AppID=$QQ_APP_ID)..."
+    ACCESS_TOKEN=$(python3 - <<PYEOF 2>/dev/null
+import urllib.request, json, sys
+data = json.dumps({"appId": "$QQ_APP_ID", "clientSecret": "$QQ_APP_SECRET"}).encode()
+req  = urllib.request.Request("https://bots.qq.com/app/getAppAccessToken",
+           data=data, headers={"Content-Type": "application/json"})
+try:
+    with urllib.request.urlopen(req, timeout=10) as r:
+        print(json.loads(r.read()).get("access_token", ""))
+except Exception as e:
+    sys.stderr.write(str(e) + "\n")
+PYEOF
+    )
 
-    if [[ "$HTTP_CODE" == "200" ]]; then
-        WS_URL=$(python3 -c "import json,sys; d=json.load(open('/tmp/gw_response.json')); print(d.get('url',''))" 2>/dev/null || echo "")
-        success "QQ Gateway 验证通过!"
-        info   "WebSocket URL: $WS_URL"
-    elif [[ "$HTTP_CODE" == "ERR" ]]; then
-        warn "网络连接失败（无法访问 QQ API），请检查网络或防火墙"
+    if [[ -z "$ACCESS_TOKEN" ]]; then
+        warn "无法获取 access_token，请检查 AppID / AppSecret 是否正确"
     else
-        RESP=$(cat /tmp/gw_response.json 2>/dev/null || echo "无响应")
-        warn "Gateway 返回 HTTP $HTTP_CODE: $RESP"
-        warn "请检查 App ID / Token 是否正确，或机器人是否已上线"
+        success "access_token 获取成功"
+
+        # Step 2: access_token → GET /gateway/bot
+        info "正在验证 Gateway 连通性..."
+        HTTP_CODE=$(curl -s -o /tmp/gw_response.json -w "%{http_code}" \
+            -H "Authorization: QQBot $ACCESS_TOKEN" \
+            "$BASE_URL/gateway/bot" 2>/dev/null) || HTTP_CODE="ERR"
+
+        if [[ "$HTTP_CODE" == "200" ]]; then
+            WS_URL=$(python3 -c "import json; d=json.load(open('/tmp/gw_response.json')); print(d.get('url',''))" 2>/dev/null || echo "")
+            success "QQ Gateway 验证通过!"
+            info   "WebSocket URL: $WS_URL"
+        elif [[ "$HTTP_CODE" == "ERR" ]]; then
+            warn "网络连接失败（无法访问 QQ API），请检查网络或防火墙"
+        else
+            RESP=$(cat /tmp/gw_response.json 2>/dev/null || echo "无响应")
+            warn "Gateway 返回 HTTP $HTTP_CODE: $RESP"
+            warn "请检查机器人是否已在 QQ 开放平台上线"
+        fi
     fi
 else
     warn "跳过连通性测试（未配置凭据）"

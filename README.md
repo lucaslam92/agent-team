@@ -89,7 +89,7 @@ bash setup.sh
 2. **机器人** → **创建机器人**，填写基本信息
 3. 进入机器人详情 → **开发设置**，记录：
    - **AppID**（数字，如 `102345678`）
-   - **Token**（长字符串）
+   - **AppSecret**（在「AppSecret」一栏查看/重置）
 4. 接入方式选择 **WebSocket 长连接**
 5. 开通事件订阅：
    - `GROUP_AT_MESSAGE_CREATE`（群聊 @机器人）
@@ -118,9 +118,9 @@ bash setup.sh
 
 ```yaml
 bot:
-  app_id: "YOUR_QQ_APP_ID"
-  token:  "YOUR_QQ_BOT_TOKEN"
-  sandbox: false          # true = 使用沙箱 API 端点
+  app_id:     "YOUR_QQ_APP_ID"      # QQ 开放平台 AppID
+  app_secret: "YOUR_QQ_APP_SECRET"  # QQ 开放平台 AppSecret
+  sandbox: false                    # true = 使用沙箱 API 端点
 
 gateway:
   exec_timeout: 120       # CLI 执行超时（秒）
@@ -138,7 +138,7 @@ codex:
 
 ```bash
 export QQ_APP_ID=102345678
-export QQ_TOKEN=your_token
+export QQ_APP_SECRET=your_app_secret
 export EXEC_TIMEOUT=120
 ```
 

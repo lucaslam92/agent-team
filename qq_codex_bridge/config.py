@@ -14,8 +14,7 @@ from typing import Optional
 @dataclass
 class BotConfig:
     app_id: str
-    token: str
-    secret: str
+    app_secret: str
     sandbox: bool = False
 
 
@@ -49,7 +48,7 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
     Load config from YAML file, then override with environment variables.
 
     Environment variables (all optional if YAML is present):
-      QQ_APP_ID, QQ_TOKEN, QQ_SANDBOX
+      QQ_APP_ID, QQ_APP_SECRET, QQ_SANDBOX
       EXEC_TIMEOUT
       CODEX_BINARY, CODEX_DEFAULT_WORKDIR, REPLY_CHUNK_SIZE, REPLY_MAX_RETRIES
     """
@@ -74,8 +73,7 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
     # 2. Environment variables override YAML
     bot = BotConfig(
         app_id=os.environ.get("QQ_APP_ID", bot_raw.get("app_id", "")),
-        token=os.environ.get("QQ_TOKEN", bot_raw.get("token", "")),
-        secret=os.environ.get("QQ_SECRET", bot_raw.get("secret", "")),
+        app_secret=os.environ.get("QQ_APP_SECRET", bot_raw.get("app_secret", "")),
         sandbox=os.environ.get("QQ_SANDBOX", str(bot_raw.get("sandbox", False))).lower()
         in ("1", "true", "yes"),
     )

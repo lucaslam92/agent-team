@@ -133,7 +133,7 @@ async def main() -> None:
     store = SessionStore(default_workdir=config.codex.default_workdir)
     sender = ReplySender(
         app_id=config.bot.app_id,
-        token=config.bot.token,
+        app_secret=config.bot.app_secret,
         sandbox=config.bot.sandbox,
         chunk_size=config.codex.reply_chunk_size,
         max_retries=config.codex.reply_max_retries,
@@ -144,7 +144,7 @@ async def main() -> None:
 
     client = BotGatewayClient(
         app_id=config.bot.app_id,
-        token=config.bot.token,
+        app_secret=config.bot.app_secret,
         sandbox=config.bot.sandbox,
         dispatch=_dispatch,
     )

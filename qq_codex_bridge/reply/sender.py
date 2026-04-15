@@ -4,6 +4,9 @@ Reply Sender — delivers OutgoingMessage objects back to QQ.
 QQ Official Bot API has a message length limit (~2000 chars for group messages).
 Long codex output is split into numbered chunks and sent sequentially.
 
+Authorization: 使用 AccessTokenManager 获取 access_token，
+               格式 "QQBot <access_token>"，token 过期自动刷新。
+
 Retry strategy: exponential back-off (1s, 2s, 4s) on transient HTTP errors.
 Permanent errors (4xx) are not retried.
 
@@ -16,12 +19,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import math
 from typing import List, Optional
 
 import aiohttp
 
 from qq_codex_bridge.gateway.models import IncomingMessage, OutgoingMessage
+from qq_codex_bridge.gateway.token import AccessTokenManager
 
 log = logging.getLogger(__name__)
 
@@ -34,16 +37,15 @@ class ReplySender:
         self,
         *,
         app_id: str,
-        token: str,
+        app_secret: str,
         sandbox: bool = False,
         chunk_size: int = 1800,
         max_retries: int = 3,
     ) -> None:
-        self._app_id = app_id
-        self._token = token
         self._base = _QQ_SANDBOX_BASE if sandbox else _QQ_OPENAPI_BASE
         self._chunk_size = chunk_size
         self._max_retries = max_retries
+        self._token_mgr = AccessTokenManager(app_id=app_id, app_secret=app_secret)
 
     # ------------------------------------------------------------------
     # Public API
@@ -69,7 +71,7 @@ class ReplySender:
             body = chunk if total == 1 else f"({i}/{total})\n{chunk}"
             msg = OutgoingMessage(
                 text=body,
-                image_url=image_url if i == 1 else "",  # send image only with first chunk
+                image_url=image_url if i == 1 else "",
                 reply_to_message_id=source.message_id,
                 channel_id=source.channel_id,
                 group_openid=source.group_openid,
@@ -77,11 +79,9 @@ class ReplySender:
             )
             await self._deliver(msg)
             if i < total:
-                # Brief pause between chunks to avoid rate limiting
                 await asyncio.sleep(0.3)
 
     async def send_error(self, error: str, *, source: IncomingMessage) -> None:
-        """Send a concise error notice."""
         await self.send(f"[Error] {error}", source=source)
 
     # ------------------------------------------------------------------
@@ -89,7 +89,6 @@ class ReplySender:
     # ------------------------------------------------------------------
 
     def _chunk(self, text: str) -> List[str]:
-        """Split text into chunks of at most chunk_size characters."""
         if len(text) <= self._chunk_size:
             return [text]
         chunks = []
@@ -99,15 +98,17 @@ class ReplySender:
         return chunks
 
     async def _deliver(self, msg: OutgoingMessage) -> None:
-        """Send a single OutgoingMessage with retry logic."""
         url, payload = self._build_request(msg)
-        headers = {
-            "Authorization": f"QQBot {self._token}",
-            "Content-Type": "application/json",
-        }
 
         delay = 1.0
         for attempt in range(1, self._max_retries + 2):
+            # 每次重试都重新取 token（可能已刷新）
+            access_token = await self._token_mgr.get()
+            headers = {
+                "Authorization": f"QQBot {access_token}",
+                "Content-Type": "application/json",
+            }
+
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.post(
@@ -123,33 +124,26 @@ class ReplySender:
                         if 400 <= resp.status < 500:
                             log.error(
                                 "QQ API rejected message (HTTP %d): %s",
-                                resp.status,
-                                body,
+                                resp.status, body,
                             )
-                            return  # permanent error — do not retry
+                            return  # 永久错误，不重试
                         log.warning(
                             "QQ API transient error (HTTP %d) attempt %d/%d: %s",
-                            resp.status,
-                            attempt,
-                            self._max_retries + 1,
-                            body,
+                            resp.status, attempt, self._max_retries + 1, body,
                         )
             except aiohttp.ClientError as exc:
                 log.warning(
                     "Network error attempt %d/%d: %s",
-                    attempt,
-                    self._max_retries + 1,
-                    exc,
+                    attempt, self._max_retries + 1, exc,
                 )
 
             if attempt <= self._max_retries:
                 await asyncio.sleep(delay)
-                delay *= 2  # exponential back-off
+                delay *= 2
 
         log.error("Failed to deliver reply after %d attempts", self._max_retries + 1)
 
     def _build_request(self, msg: OutgoingMessage) -> tuple[str, dict]:
-        """Return (url, json_payload) for the appropriate QQ API endpoint."""
         content: dict = {}
         if msg.text:
             content["content"] = msg.text
@@ -165,7 +159,6 @@ class ReplySender:
             url = f"{self._base}/channels/{msg.channel_id}/messages"
             payload = content
         else:
-            # Fallback: C2C / DM
             url = f"{self._base}/v2/users/{msg.author_id}/messages"
             payload = {**content, "msg_type": 0}
 

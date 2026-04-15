@@ -1,56 +1,57 @@
 """
 QQ Official Bot WebSocket Gateway Client.
 
+认证流程
+--------
+app_id + app_secret → AccessTokenManager → access_token
+access_token 用于：
+  - GET /gateway/bot  Authorization 头
+  - op=2 Identify 的 token 字段（格式: "QQBot <access_token>"）
+  - op=6 Resume 的 token 字段
+
 Protocol flow
 -------------
-1. GET /gateway/bot  → { "url": "wss://..." }
-2. Connect to wss URL
-3. Receive op=10 Hello  → { "heartbeat_interval": N ms }
-4. Send   op=2  Identify with token + intents
-5. Receive op=0  READY  → session_id, shard, user info
-6. Loop:
-     - Receive op=0  Dispatch → forward event to dispatch callback
-     - Receive op=11 Heartbeat ACK → ok
-     - Receive op=7  Reconnect   → reconnect with Resume
-     - Receive op=9  Invalid Session → full re-identify
-     - Every heartbeat_interval ms: Send op=1 Heartbeat with last seq
+1. AccessTokenManager.get() → 获取/刷新 access_token
+2. GET /gateway/bot          → { "url": "wss://..." }
+3. Connect to wss URL
+4. Receive op=10 Hello       → { "heartbeat_interval": N ms }
+5. Send   op=2  Identify     → token + intents
+6. Receive op=0  READY       → session_id, shard, user info
+7. Loop:
+     - op=0  Dispatch  → forward to dispatch callback
+     - op=11 Heartbeat ACK → ok
+     - op=7  Reconnect → reconnect with Resume
+     - op=9  Invalid Session → full re-identify
+     - Every heartbeat_interval ms: Send op=1 Heartbeat
 
 Reconnect strategy
 ------------------
-- On disconnect: exponential back-off (2s, 4s, 8s … cap 60s)
-- If session_id is still valid: send op=6 Resume to avoid replaying
-  missed events manually (QQ will replay them automatically)
-- If Resume is rejected (op=9): fall back to full Identify
-
-Intents bitmask (add as needed)
---------------------------------
-  GUILDS                = 1 << 0
-  AT_MESSAGE_CREATE     = 1 << 30   # guild @bot messages
-  GROUP_AT_MESSAGE      = 1 << 25   # group @bot messages
-  C2C_MESSAGE           = 1 << 26   # private/C2C messages
-  DIRECT_MESSAGE        = 1 << 12   # DM in guild
+- 断线 → 指数退避（2s, 4s … 上限 60s）
+- session_id 有效 → op=6 Resume（QQ 自动补发丢失事件）
+- Resume 被拒（op=9）→ 重新 Identify，丢弃旧 session
 """
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
-import time
 from typing import Callable, Awaitable, Optional
 
 import aiohttp
 import websockets
 from websockets.exceptions import ConnectionClosed
 
+from qq_codex_bridge.gateway.token import AccessTokenManager
+
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Intent flags
 # ---------------------------------------------------------------------------
-INTENT_AT_MESSAGE = 1 << 30
-INTENT_GROUP_AT_MESSAGE = 1 << 25
-INTENT_C2C_MESSAGE = 1 << 26
-INTENT_DIRECT_MESSAGE = 1 << 12
+INTENT_AT_MESSAGE       = 1 << 30   # 频道 @bot
+INTENT_GROUP_AT_MESSAGE = 1 << 25   # 群聊 @bot
+INTENT_C2C_MESSAGE      = 1 << 26   # 私聊
+INTENT_DIRECT_MESSAGE   = 1 << 12   # 频道私信
 
 DEFAULT_INTENTS = (
     INTENT_AT_MESSAGE
@@ -59,55 +60,55 @@ DEFAULT_INTENTS = (
     | INTENT_DIRECT_MESSAGE
 )
 
-_QQ_API_BASE = "https://api.sgroup.qq.com"
+_QQ_API_BASE    = "https://api.sgroup.qq.com"
 _QQ_SANDBOX_BASE = "https://sandbox.api.sgroup.qq.com"
 
 
 class BotGatewayClient:
     """
-    Long-lived WebSocket client for the QQ Official Bot gateway.
+    长连接 WebSocket 客户端。
 
     Parameters
     ----------
-    app_id:     QQ application ID (string)
-    token:      QQ bot token
-    sandbox:    Use sandbox API endpoints
-    intents:    Bitmask of subscribed event intents
-    dispatch:   Async callback invoked for each op=0 event payload (dict)
+    app_id:     QQ AppID
+    app_secret: QQ AppSecret（用于换取 access_token）
+    sandbox:    使用沙箱 API 端点
+    intents:    事件订阅位掩码
+    dispatch:   收到 op=0 事件时的异步回调
     """
 
     def __init__(
         self,
         *,
         app_id: str,
-        token: str,
+        app_secret: str,
         sandbox: bool = False,
         intents: int = DEFAULT_INTENTS,
         dispatch: Callable[[dict], Awaitable[None]],
     ) -> None:
-        self._app_id = app_id
-        self._token = token
-        self._base = _QQ_SANDBOX_BASE if sandbox else _QQ_API_BASE
-        self._intents = intents
+        self._app_id   = app_id
+        self._base     = _QQ_SANDBOX_BASE if sandbox else _QQ_API_BASE
+        self._intents  = intents
         self._dispatch = dispatch
+        self._token_mgr = AccessTokenManager(app_id=app_id, app_secret=app_secret)
 
         # Runtime state
         self._session_id: Optional[str] = None
-        self._seq: Optional[int] = None          # last received sequence number
-        self._heartbeat_interval: float = 41.25  # seconds (default QQ value)
+        self._seq: Optional[int] = None
+        self._heartbeat_interval: float = 41.25
         self._heartbeat_task: Optional[asyncio.Task] = None
 
     # ------------------------------------------------------------------
-    # Public API
+    # Public
     # ------------------------------------------------------------------
 
     async def run(self) -> None:
-        """Connect and run forever, reconnecting on failure."""
+        """永久运行，断线自动重连（指数退避）。"""
         backoff = 2.0
         while True:
             try:
                 await self._connect_loop()
-                backoff = 2.0  # reset on clean exit (shouldn't happen)
+                backoff = 2.0
             except Exception as exc:
                 log.error("Gateway error: %s — reconnecting in %.0fs", exc, backoff)
                 await asyncio.sleep(backoff)
@@ -123,17 +124,17 @@ class BotGatewayClient:
 
         async with websockets.connect(
             ws_url,
-            max_size=10 * 1024 * 1024,  # 10 MB
-            ping_interval=None,          # we manage heartbeats ourselves
+            max_size=10 * 1024 * 1024,
+            ping_interval=None,        # 由我们自己发心跳
         ) as ws:
             await self._handle_connection(ws)
 
     async def _handle_connection(self, ws) -> None:
         async for raw in ws:
-            payload = json.loads(raw)
-            op = payload.get("op")
-            data = payload.get("d", {})
-            seq = payload.get("s")
+            payload    = json.loads(raw)
+            op         = payload.get("op")
+            data       = payload.get("d", {})
+            seq        = payload.get("s")
             event_type = payload.get("t", "")
 
             if seq is not None:
@@ -161,32 +162,32 @@ class BotGatewayClient:
 
     async def _on_hello(self, ws, data: dict) -> None:
         self._heartbeat_interval = data.get("heartbeat_interval", 41250) / 1000.0
-        log.info("Hello received — heartbeat interval: %.2fs", self._heartbeat_interval)
+        log.info("Hello — heartbeat interval: %.2fs", self._heartbeat_interval)
 
-        # Cancel previous heartbeat loop if reconnecting
         if self._heartbeat_task and not self._heartbeat_task.done():
             self._heartbeat_task.cancel()
-
         self._heartbeat_task = asyncio.create_task(self._heartbeat_loop(ws))
 
+        # 每次 Hello 都重新取一次 token（可能已到期）
+        access_token = await self._token_mgr.get()
+        auth = f"QQBot {access_token}"
+
         if self._session_id and self._seq is not None:
-            # Resume existing session
             log.info("Resuming session %s at seq %s", self._session_id, self._seq)
             await ws.send(json.dumps({
                 "op": 6,
                 "d": {
-                    "token": f"QQBot {self._token}",
+                    "token": auth,
                     "session_id": self._session_id,
                     "seq": self._seq,
                 },
             }))
         else:
-            # Fresh identify
             log.info("Identifying (app_id=%s, intents=%d)", self._app_id, self._intents)
             await ws.send(json.dumps({
                 "op": 2,
                 "d": {
-                    "token": f"QQBot {self._token}",
+                    "token": auth,
                     "intents": self._intents,
                     "shard": [0, 1],
                     "properties": {
@@ -202,10 +203,8 @@ class BotGatewayClient:
             self._session_id = data.get("session_id")
             user = data.get("user", {})
             log.info(
-                "READY — bot: %s#%s, session: %s",
-                user.get("username"),
-                user.get("id"),
-                self._session_id,
+                "READY — bot: %s (%s), session: %s",
+                user.get("username"), user.get("id"), self._session_id,
             )
             return
 
@@ -213,7 +212,6 @@ class BotGatewayClient:
             log.info("RESUMED — session restored")
             return
 
-        # Forward all other events to the application layer
         asyncio.create_task(self._safe_dispatch(payload))
 
     async def _safe_dispatch(self, payload: dict) -> None:
@@ -226,8 +224,7 @@ class BotGatewayClient:
         try:
             while True:
                 await asyncio.sleep(self._heartbeat_interval)
-                heartbeat = json.dumps({"op": 1, "d": self._seq})
-                await ws.send(heartbeat)
+                await ws.send(json.dumps({"op": 1, "d": self._seq}))
                 log.debug("Heartbeat sent (seq=%s)", self._seq)
         except (ConnectionClosed, asyncio.CancelledError):
             pass
@@ -235,14 +232,20 @@ class BotGatewayClient:
             log.exception("Heartbeat loop error")
 
     async def _fetch_gateway_url(self) -> str:
-        """Call GET /gateway/bot to get the WebSocket URL."""
-        headers = {"Authorization": f"QQBot {self._token}"}
+        """GET /gateway/bot 获取 WebSocket 连接地址。"""
+        access_token = await self._token_mgr.get()
+        headers = {"Authorization": f"QQBot {access_token}"}
         url = f"{self._base}/gateway/bot"
+
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+            async with session.get(
+                url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
                 if resp.status != 200:
                     body = await resp.text()
-                    raise RuntimeError(f"Failed to fetch gateway URL (HTTP {resp.status}): {body}")
+                    raise RuntimeError(
+                        f"Failed to fetch gateway URL (HTTP {resp.status}): {body}"
+                    )
                 data = await resp.json()
                 ws_url = data.get("url", "")
                 if not ws_url:
