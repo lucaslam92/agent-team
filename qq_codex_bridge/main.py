@@ -26,6 +26,8 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%S",
 )
+# Show debug-level poll logs for the session module
+logging.getLogger("qq_codex_bridge.bridge.session").setLevel(logging.DEBUG)
 log = logging.getLogger(__name__)
 
 

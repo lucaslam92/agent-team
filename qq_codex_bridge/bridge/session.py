@@ -18,7 +18,6 @@ Default model
 """
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import re
@@ -30,6 +29,9 @@ from typing import Optional
 log = logging.getLogger(__name__)
 
 _ANSI_RE = re.compile(r'\x1b\[[0-9;]*[mGKHFJA-Z]')
+
+# How long to wait after tmux new-session before reading the startup screen
+_STARTUP_WAIT = 6.0
 
 
 def _clean(text: str) -> str:
@@ -76,7 +78,7 @@ class TmuxSession:
         text: str,
         *,
         poll_interval: float = 0.5,
-        stable_rounds: int = 4,   # N consecutive unchanged captures → done
+        stable_rounds: int = 6,   # N consecutive unchanged captures → done
         timeout: float = 120.0,
     ) -> str:
         """Send text, wait for response to stabilise, return new output."""
@@ -86,9 +88,12 @@ class TmuxSession:
 
             # Snapshot screen before sending
             before = self._capture()
+            log.debug("[%s] Screen before send (%d chars):\n%s",
+                      self.name, len(before), before[:400])
 
             # Type the message
             self._send_keys(text)
+            log.info("[%s] >>> sent: %r", self.name, text[:120])
 
             # Poll until screen stable
             prev = before
@@ -100,21 +105,35 @@ class TmuxSession:
                 time.sleep(poll_interval)
                 elapsed += poll_interval
                 cur = self._capture()
+
                 if cur == prev:
                     stable += 1
+                    log.debug("[%s] poll %.1fs — stable %d/%d",
+                              self.name, elapsed, stable, stable_rounds)
                     if stable >= stable_rounds:
                         after = cur
+                        log.info("[%s] Response stable after %.1fs", self.name, elapsed)
                         break
                 else:
+                    if stable > 0:
+                        log.debug("[%s] poll %.1fs — screen changed (was stable %d)",
+                                  self.name, elapsed, stable)
+                    else:
+                        log.debug("[%s] poll %.1fs — screen changed", self.name, elapsed)
                     stable = 0
                     prev = cur
             else:
+                log.warning("[%s] Timed out after %.0fs — returning whatever is on screen",
+                            self.name, timeout)
                 after = self._capture()
 
-            return _extract_new(before, after)
+            result = _extract_new(before, after)
+            log.info("[%s] <<< reply (%d chars): %r", self.name, len(result), result[:300])
+            return result
 
     def close(self) -> None:
         if self.is_alive():
+            log.info("[%s] Closing tmux session", self.name)
             subprocess.run(
                 ['tmux', 'kill-session', '-t', self.name],
                 capture_output=True,
@@ -134,9 +153,9 @@ class TmuxSession:
     # ------------------------------------------------------------------
 
     def _start(self) -> None:
-        log.info("Starting tmux session '%s' running %s in %s",
+        log.info("[%s] Launching tmux session: %s in %s",
                  self.name, self.model, self.workdir)
-        subprocess.run(
+        result = subprocess.run(
             [
                 'tmux', 'new-session', '-d',
                 '-s', self.name,
@@ -144,10 +163,24 @@ class TmuxSession:
                 '-c', self.workdir,
                 self.model,
             ],
-            check=True,
+            capture_output=True,
+            text=True,
         )
-        # Wait for CLI startup banner to settle
-        time.sleep(5)
+        if result.returncode != 0:
+            log.error("[%s] tmux new-session failed: %s", self.name, result.stderr.strip())
+            raise RuntimeError(f"tmux new-session failed: {result.stderr.strip()}")
+
+        log.info("[%s] tmux session created — waiting %.1fs for CLI startup...",
+                 self.name, _STARTUP_WAIT)
+        time.sleep(_STARTUP_WAIT)
+
+        # Verify the CLI is actually running and log what's on screen
+        screen = self._capture()
+        if screen.strip():
+            log.info("[%s] CLI startup screen:\n%s", self.name, screen[:600])
+        else:
+            log.warning("[%s] CLI startup screen is empty — may not have started correctly",
+                        self.name)
 
     def _send_keys(self, text: str) -> None:
         subprocess.run(
@@ -195,7 +228,7 @@ class SessionManager:
                     model=model,
                     workdir=self._default_workdir,
                 )
-                log.debug("New tmux session %s (model=%s)", session_id, model)
+                log.info("Created session slot %s (model=%s)", session_id, model)
             return self._sessions[session_id]
 
     def remove(self, session_id: str) -> None:
